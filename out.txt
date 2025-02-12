@@ -1,0 +1,186 @@
+Sending build context to Docker daemon  92.67kB
+Step 1/5 : FROM ubuntu:24.04
+ ---> a04dc4851cbc
+Step 2/5 : WORKDIR /root
+ ---> Running in 40cb7ab53ca3
+ ---> Removed intermediate container 40cb7ab53ca3
+ ---> caf8b22ddce8
+Step 3/5 : COPY setup.sh .
+ ---> 43930547f35e
+Step 4/5 : RUN ./setup.sh
+ ---> Running in 3c3480eea001
+[91m
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+[0mGet:1 http://archive.ubuntu.com/ubuntu noble InRelease [256 kB]
+Get:2 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Err:2 http://security.ubuntu.com/ubuntu noble-security InRelease
+  At least one invalid signature was encountered.
+Get:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Err:1 http://archive.ubuntu.com/ubuntu noble InRelease
+  At least one invalid signature was encountered.
+Get:4 http://archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Err:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease
+  At least one invalid signature was encountered.
+Err:4 http://archive.ubuntu.com/ubuntu noble-backports InRelease
+  At least one invalid signature was encountered.
+Reading package lists...
+[91mW: GPG error: http://security.ubuntu.com/ubuntu noble-security InRelease: At least one invalid signature was encountered.
+E: The repository 'http://security.ubuntu.com/ubuntu noble-security InRelease' is not signed.
+W: GPG error: http://archive.ubuntu.com/ubuntu noble InRelease: At least one invalid signature was encountered.
+E: The repository 'http://archive.ubuntu.com/ubuntu noble InRelease' is not signed.
+W: GPG error: http://archive.ubuntu.com/ubuntu noble-updates InRelease: At least one invalid signature was encountered.
+E: The repository 'http://archive.ubuntu.com/ubuntu noble-updates InRelease' is not signed.
+W: GPG error: http://archive.ubuntu.com/ubuntu noble-backports InRelease: At least one invalid signature was encountered.
+E: The repository 'http://archive.ubuntu.com/ubuntu noble-backports InRelease' is not signed.
+[0m[91m
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+[0mReading package lists...
+Building dependency tree...
+Reading state information...
+Package bash-completion is not available, but is referred to by another package.
+This may mean that the package is missing, has been obsoleted, or
+is only available from another source
+
+[91mE: Unable to locate package curl
+E: Unable to locate package wget
+E: Unable to locate package git
+E: Unable to locate package tzdata
+E: Unable to locate package vim
+E: Package 'bash-completion' has no installation candidate
+[0m[91m
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+[0mReading package lists...
+Building dependency tree...
+Reading state information...
+Calculating upgrade...
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+installing terraform
+[91m
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+[0mReading package lists...
+Building dependency tree...
+Reading state information...
+Package gnupg is not available, but is referred to by another package.
+This may mean that the package is missing, has been obsoleted, or
+is only available from another source
+
+[91mE: Package 'gnupg' has no installation candidate
+E: Unable to locate package software-properties-common
+[0m[91m./setup.sh: line 35: wget: command not found
+[0m[91m./setup.sh: line 35: gpg: command not found
+[0m[91m./setup.sh: line 36: lsb_release: command not found
+[0mdeb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com  main
+[91m
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+[0m[91mE: Malformed entry 1 in list file /etc/apt/sources.list.d/hashicorp.list (Component)
+E: The list of sources could not be read.
+[0m[91m./setup.sh: line 38: terraform: command not found
+[0minstalling kustomize
+[91m./setup.sh: line 57: curl: command not found
+[0m[91mmv: cannot stat 'kustomize': No such file or directory
+[0m[91m./setup.sh: line 59: kustomize: command not found
+[0minstalling helm
+[91m./setup.sh: line 66: curl: command not found
+[0m[91m./setup.sh: line 67: helm: command not found
+[0minstalling kubectl
+[91m./setup.sh: line 82: curl: command not found
+[0m[91m./setup.sh: line 82: curl: command not found
+[0m[91mchmod: cannot access 'kubectl': No such file or directory
+[0m[91mmv: cannot stat 'kubectl': No such file or directory
+[0m[91m./setup.sh: line 85: kubectl: command not found
+[0minstalling krew
+[91m++ mktemp -d
+[0m[91m+ cd /tmp/tmp.4wxcMoCgO6
+[0m[91m++ uname
+[0m[91m++ tr '[:upper:]' '[:lower:]'
+[0m[91m+ OS=linux
+[0m[91m++ uname -m
+[0m[91m++ sed -e s/x86_64/amd64/ -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/'
+[0m[91m+ ARCH=amd64
++ KREW=krew-linux_amd64
+[0m[91m+ curl -fsSLO https://github.com/kubernetes-sigs/krew/releases/latest/download/krew-linux_amd64.tar.gz
+[0m[91m./setup.sh: line 112: curl: command not found
+[0minstalling kubens
+[91minstall: missing destination file operand after 'ns'
+Try 'install --help' for more information.
+[0minstalling kubectx
+[91minstall: missing destination file operand after 'ctx'
+Try 'install --help' for more information.
+[0minstalling kubecolor
+[91m
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+[0m[91mE: Malformed entry 1 in list file /etc/apt/sources.list.d/hashicorp.list (Component)
+E: The list of sources could not be read.
+[0m[91m./setup.sh: line 75: kubecolor: command not found
+[0minstalling netshoot
+[91m./setup.sh: line 134: index: command not found
+[0m[91minstall: missing destination file operand after 'netshoot/netshoot'
+Try 'install --help' for more information.
+[0minstalling k9s
+[91m./setup.sh: line 141: wget: command not found
+[0m[91m
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+[0m[91mE: Malformed entry 1 in list file /etc/apt/sources.list.d/hashicorp.list (Component)
+E: The list of sources could not be read.
+[0m[91mrm: cannot remove './k9s_linux_amd64.deb': No such file or directory
+[0m[91m./setup.sh: line 144: k9s: command not found
+[0minstalling go
+[91m./setup.sh: line 152: wget: command not found
+[0m[91mtar (child): go.tar.gz: Cannot open: No such file or directory
+tar (child): Error is not recoverable: exiting now
+[0m[91mtar: Child returned status 2
+tar: Error is not recoverable: exiting now
+[0m[91mrm: cannot remove 'go.tar.gz': No such file or directory
+[0minstalling podman
+[91m
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+[0m[91mE: Malformed entry 1 in list file /etc/apt/sources.list.d/hashicorp.list (Component)
+E: The list of sources could not be read.
+[0minstalling kubectl neat
+[91minstall: missing destination file operand after 'neat'
+Try 'install --help' for more information.
+[0m[91m./setup.sh: line 177: wget: command not found
+[0m[91mchmod: cannot access '/usr/bin/yq': No such file or directory
+[0m[91m./setup.sh: line 179: yq: command not found
+[0m[91m./setup.sh: line 186: wget: command not found
+[0m[91mtar: ccat.tar.gz: Cannot open: No such file or directory
+tar: Error is not recoverable: exiting now
+[0m[91mmv: cannot stat 'ccat': No such file or directory
+[0m[91m./setup.sh: line 189: ccat: command not found
+[0m[91mrm: cannot remove 'ccat.tar.gz': No such file or directory
+[0m[91m./setup.sh: line 191: ccat: command not found
+[0m[91m./setup.sh: line 200: curl: command not found
+[0m[91m./setup.sh: line 201: talosctl: command not found
+[0m[91m
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+[0m[91mE: Malformed entry 1 in list file /etc/apt/sources.list.d/hashicorp.list (Component)
+E: The list of sources could not be read.
+[0m[91m./setup.sh: line 211: pipx: command not found
+[0m[91mrm: cannot remove '/usr/local/lib/python3.12/dist-packages/thefuck/conf.py': No such file or directory
+[0m[91mrm: cannot remove '/usr/local/lib/python3.12/dist-packages/thefuck/types.py': No such file or directory
+[0m[91m./setup.sh: line 215: wget: command not found
+[0m[91m./setup.sh: line 216: wget: command not found
+[0m[91m./setup.sh: line 223: pipx: command not found
+[0m[91m
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+[0m[91mE: Malformed entry 1 in list file /etc/apt/sources.list.d/hashicorp.list (Component)
+E: The list of sources could not be read.
+[0m[91m./setup.sh: line 239: kubectl: command not found
+[0m ---> Removed intermediate container 3c3480eea001
+ ---> ba8f318e03e5
+Step 5/5 : VOLUME [ "/var/run/docker.sock" ]
+ ---> Running in e9bdf78049ea
+ ---> Removed intermediate container e9bdf78049ea
+ ---> 6bb70e9e4d29
+Successfully built 6bb70e9e4d29
+Successfully tagged test:latest
