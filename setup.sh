@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-export COMPLETION_FOLDER="/usr/local/share/completions"
+
+set -e
+
+export COMPLETION_FOLDER="/usr/share/bash-completion/completions"
 mkdir -p $COMPLETION_FOLDER
 _bashrc=$HOME/.bashrc
 
@@ -16,25 +19,27 @@ add_to_profile() {
   source $_bashrc
 }
 
-prepare() {
-  rm /etc/apt/apt.conf.d/docker-clean # enable shell completion for apt in ubuntu docker image
+function prepare() {
+  rm /etc/apt/apt.conf.d/docker-clean || echo "docker-clean not found => skipping delete" # enable shell completion for apt in ubuntu docker image
   add_to_profile xdg 'XDG_CONFIG_HOME="$HOME/.config"'
   apt update
   export TZ=Europe/Berlin
   echo $TZ > /etc/timezone
   export DEBIAN_FRONTEND=noninteractive
-  apt install -y curl wget git tzdata vim bash-completion
+  apt install -y curl wget git tzdata vim bash-completion apt-utils
   apt upgrade -y
   add_to_profile bash_completion 'source /etc/bash_completion'
 }
 
 
-terraform_install () {
-  echo "installing terraform"
+function terraform_install() {
+  echo "\e[31minstalling terraform\e[0m"
   apt install -y gnupg software-properties-common
   wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  wget -O- https://apt.releases.hashicorp.com/gpg |  gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null
   echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
-  apt update && apt install -y terraform
+  apt update
+  apt install -y terraform
   terraform -install-autocomplete
   add_to_profile terraform 'complete -C /usr/bin/terraform tf
 complete -C /usr/bin/terraform terraform
@@ -45,63 +50,84 @@ alias tfa="terraform apply"
 alias tfaa="terraform apply -auto-approve"
 alias tfd="terraform destroy"
 alias tfda="terraform destroy -auto-approve"'
+  terraform --version
 }
 
-az_install () {
-  echo "installing az"
+function az_install() {
+  echo "\e[31minstalling az\e[0m"
   curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+  az --version
 }
 
-kustomize_install () {
-  echo "installing kustomize"
+function kustomize_install() {
+  echo "\e[31minstalling kustomize\e[0m"
   curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -
   mv kustomize /usr/bin/
   kustomize completion bash > completion_kustomize
   mv completion_kustomize $COMPLETION_FOLDER/kustomize
   add_to_profile kustomize "source $COMPLETION_FOLDER/kustomize"
+  kustomize version
 }
 
-helm_install () {
-  echo "installing helm"
+function helm_install() {
+  echo "\e[31minstalling helm\e[0m"
   curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
   helm completion bash > completion_helm
   mv completion_helm $COMPLETION_FOLDER/helm
   add_to_profile helm "source $COMPLETION_FOLDER/helm"
+  helm version
 }
 
-kubecolor_install () {
-  echo "installing kubecolor"
-  apt install -y kubecolor 
-  add_to_profile kubecolor "alias kubectl=kubecolor"
-}
-
-kubectl_install () {
-  echo "installing kubectl"
+function kubectl_install() {
+  echo "\e[31minstalling kubectl\e[0m"
   curl -LO https://dl.k8s.io/release/$(curl -LS https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
   chmod +x kubectl
   mv kubectl /usr/bin
   kubectl completion bash > completion_kubectl
   mv completion_kubectl $COMPLETION_FOLDER/kubectl
 
-  add_to_profile kubectl "source $COMPLETION_FOLDER/kubectl
+  add_to_profile kubectl "source $COMPLETION_FOLDER/kubectl"'
 alias k=kubectl
 complete -F __start_kubectl k
-complete -f __start_kubectl kubecolor
-alias ka='kubectl apply'
-alias kaf='kubectl apply -f'
-alias kak='kubectl apply -k'
-alias krm='kubectl delete'
-alias krma='kubectl delete --all'
-alias kg='kubectl get'
-alias kake='kustomize build --enable-helm . | kubectl apply -f -'
-alias krmk='kubectl delete -k'
-alias krmf='kubectl delete -f'
-alias kcns='kubectl create ns'
-alias kng='kubectl neat get'"
+complete -F __start_kubectl kubecolor
+
+complete -F __start_kubectl ka
+function ka(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 2 && -z "${2}" ]]; then kubectl $1 apply ''; else kubectl $1 apply ${@:2}; fi else kubectl apply ${@}; fi }
+
+complete -F __start_kubectl kak
+function kak(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 21 && -z "${2}" ]]; then kubectl $1 apply -k ''; else kubectl $1 apply -k ${@:2}; fi else kubectl apply -k ${@}; fi }
+
+complete -F __start_kubectl kaf
+function kaf(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 2 && -z "${2}" ]]; then kubectl $1 apply -f ''; else kubectl $1 apply -f ${@:2}; fi else kubectl apply -f ${@}; fi }
+
+complete -F __start_kubectl krm
+function krm(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 2 && -z "${2}" ]]; then kubectl $1 delete ''; else kubectl $1 delete ${@:2}; fi else kubectl delete ${@}; fi }
+
+complete -F __start_kubectl krma
+function krma(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 3 && -z "${3}" ]]; then kubectl $1 delete --all ''; else kubectl $1 delete --all ${@:2}; fi else kubectl delete --all ${@}; fi }
+
+complete -F __start_kubectl kg
+function kg(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 2 && -z "${2}" ]]; then kubectl $1 get ''; else kubectl $1 get ${@:2}; fi else kubectl get ${@}; fi }
+
+alias kake="kustomize build --enable-helm . | kubectl apply -f -"
+complete -F __start_kubectl krmk
+
+function krmk(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 3 && -z "${3}" ]]; then kubectl $1 delete -k ''; else kubectl $1 delete -k ${@:2}; fi else kubectl delete -k ${@}; fi }
+complete -F __start_kubectl krmf
+
+function krmf(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 3 && -z "${3}" ]]; then kubectl $1 delete -f ''; else kubectl $1 delete -f ${@:2}; fi else kubectl delete -f ${@}; fi }
+
+complete -F __start_kubectl kcns
+function kcns(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 3 && -z "${3}" ]]; then kubectl $1 creat ns ''; else kubectl $1 create ns ${@:2}; fi else kubectl create ns ${@}; fi }
+
+complete -F __start_kubectl kng
+function kng(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 2 && -z "${2}" ]]; then kubectl $1 neat get ''; else kubectl $1 neat get ${@:2}; fi else kubectl neat get ${@}; fi }'
+
+  kubectl version --client
 }
 
-krew_install () {
-  echo "installing krew"
+function krew_install() {
+  echo "\e[31minstalling krew\e[0m"
   (
     set -x; cd "$(mktemp -d)" &&
     OS="$(uname | tr '[:upper:]' '[:lower:]')" &&
@@ -113,48 +139,64 @@ krew_install () {
   )
   add_to_profile krew 'export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin"'
   # completion not yet working: https://github.com/kubernetes-sigs/krew/issues/812
+  export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin" 
+  kubectl krew version
 }
 
-kubens_install () {
-  echo "installing kubens"
+function kubens_install() {
+  echo "\e[31minstalling kubens\e[0m"
   $(find -iname krew -type f) install ns
   add_to_profile kubens 'alias kns="kubectl ns"'
+  kubectl plugin list | grep kubectl-ns
 }
 
-kubectx_install () {
-  echo "installing kubectx"
+function kubectx_install() {
+  echo "\e[31minstalling kubectx\e[0m"
   $(find -iname krew -type f) install ctx
   add_to_profile kubectx 'alias kctx="kubectl ctx"'
+  kubectl plugin list | grep kubectl-ctx
 }
 
-netshoot_install () {
-  echo "installing netshoot"
+function netshoot_install() {
+  echo "\e[31minstalling netshoot\e[0m"
   $(find -iname krew -type f) index add netshoot https://github.com/nilic/kubectl-netshoot.git
   $(find -iname krew -type f) install netshoot/netshoot
   add_to_profile netshoot 'alias netshoot="k netshoot run tmp"'
+  kubectl plugin list | grep kubectl-netshoot
 }
 
-k9s_install () {
-  echo "installing k9s"
+function k9s_install() {
+  echo "\e[31minstalling k9s\e[0m"
   wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb
   apt install -y --fix-missing ./k9s_linux_amd64.deb
   rm ./k9s_linux_amd64.deb
   k9s completion bash > completion_k9s
   mv completion_k9s $COMPLETION_FOLDER/k9s
   add_to_profile k9s "source $COMPLETION_FOLDER/k9s"
+  k9s --version
 }
 
-go_install () {
-  echo "installing go"
+function go_install() {
+  echo "\e[31minstalling go\e[0m"
   GO_VERSION=1.23.5
   wget https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz -O go.tar.gz
   rm -rf /usr/local/go && tar -C /usr/local -xzf go.tar.gz
-  add_to_profile go 'export PATH="$PATH:/usr/local/go/bin:/home/patrick/go/bin"'
+  add_to_profile go 'export PATH="$PATH:/usr/local/go/bin:'$HOME'/go/bin"'
   rm go.tar.gz
+  export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
+  go version
 }
 
-podman_install () {
-  echo "installing podman"
+function kubecolor_install() {
+  echo "\e[31minstalling kubecolor\e[0m"
+  go install github.com/kubecolor/kubecolor@latest
+  add_to_profile kubecolor "alias kc=kubecolor
+  alias kubectl=kubecolor"
+  /root/go/bin/kubecolor
+}
+
+function podman_install() {
+  echo "\e[31minstalling podman\e[0m"
   apt -y install podman
   add_to_profile podman 'alias docker=podman
 function run-it() {
@@ -163,23 +205,29 @@ function run-it() {
 export -f run-it
 alias rit=run-it
 alias dbt="docker build . -t"'
+
+  podman --version
 }
 
-kubectl_neat_install () {
-  echo "installing kubectl neat"
+function kubectl_neat_install() {
+  echo "\e[31minstalling kubectl neat\e[0m"
   $(find -iname krew -type f) install neat
   add_to_profile kubectl_neat 'alias kng="kubectl neat get"'
+  kubectl plugin list | grep kubectl-neat
 }
 
-yq_install (){
+function yq_install(){
+  echo "\e[31minstalling yq\e[0m"
   wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
   chmod +x /usr/bin/yq
   yq completion bash > completion_yq
   mv completion_yq $COMPLETION_FOLDER/yq
   add_to_profile yq "source $COMPLETION_FOLDER/yq"
+  yq --version
 }
 
-ccat_install() {
+function ccat_install() {
+  echo "\e[31minstalling ccat\e[0m"
   version=1.17.2
   wget https://github.com/batmac/ccat/releases/download/v$version/ccat-$version-linux-amd64.tar.gz -O ccat.tar.gz
   tar -xvf ccat.tar.gz
@@ -192,39 +240,55 @@ ccat_install() {
 source $COMPLETION_FOLDER/ccat
 complete -F _ccat_completions cat
 alias _cat=/usr/bin/cat"
+
+  ccat --version
 }
 
-talosctl_install() {
+function talosctl_install() {
+  echo "\e[31minstalling talosctl\e[0m"
   curl -sL https://talos.dev/install | sh
   talosctl completion bash > completion_talosctl
   mv completion_talosctl $COMPLETION_FOLDER/talosctl
-  add_to_profile talosctl "source $COMPLETION_FOLDER/talosctl" 
+  add_to_profile talosctl "source $COMPLETION_FOLDER/talosctl
+alias tctl=talosctl"
+  talosctl version --client
 }
 
-python_install() {
+function python_install() {
+  echo "\e[31minstalling python\e[0m"
   apt install -y python3 python3-pip python-is-python3 python3-setuptools pip pipx
+  python --version
 }
 
-fuck_install() {
+function fuck_install() {
+  echo "\e[31minstalling fuck\e[0m"
   pip install thefuck --break-system-packages
   # broken package for python 3.12... https://github.com/nvbn/thefuck/issues/1491
-  rm /usr/local/lib/python3.12/dist-packages/thefuck/conf.py
-  rm /usr/local/lib/python3.12/dist-packages/thefuck/types.py
-  wget https://raw.githubusercontent.com/DL909/thefuck/refs/heads/imp-bug-fix/thefuck/types.py -O /usr/local/lib/python3.12/dist-packages/thefuck/types.py
-  wget https://raw.githubusercontent.com/nvbn/thefuck/f3af4c30da9bc8d2d168114f4d602fa03581eb62/thefuck/conf.py -O /usr/local/lib/python3.12/dist-packages/thefuck/conf.py
+  python_version=$(python --version | sed 's/Python //g' | sed 's/\.[0-9]\+$//')
+  rm /usr/local/lib/python$python_version/dist-packages/thefuck/conf.py
+  rm /usr/local/lib/python$python_version/dist-packages/thefuck/types.py
+  wget https://raw.githubusercontent.com/DL909/thefuck/refs/heads/imp-bug-fix/thefuck/types.py -O /usr/local/lib/python$python_version/dist-packages/thefuck/types.py
+  wget https://raw.githubusercontent.com/nvbn/thefuck/f3af4c30da9bc8d2d168114f4d602fa03581eb62/thefuck/conf.py -O /usr/local/lib/python$python_version/dist-packages/thefuck/conf.py
   add_to_profile fuck 'alias f=fuck
 eval $(thefuck --alias fuck)
 export PATH=$PATH:/root/.local/bin'
+
+  eval $(thefuck --alias fuck)
+  fuck --version
 }
 
-xxh_install() {
+function xxh_install() {
+  echo "\e[31minstalling xxh\e[0m"
   apt install -y sshpass
   pipx install xxh-xxh
   add_to_profile xxh 'alias ssh=xxh
 alias _ssh=/usr/bin/ssh'
+
+  #ls $HOME/bin/xxh
 }
 
 miscelanious_install() {
+  echo "installing miscelanious\e[0m"
   apt install -y htop vim iotop net-tools
   
   echo 'set completion-ignore-case On' >> /etc/inputrc
@@ -259,13 +323,18 @@ export HISTSIZE=
 export HISTTIMEFORMAT="[%F %T] "
 # Change the file location because certain bash sessions truncate .bash_history file upon close.
 # http://superuser.com/questions/575479/bash-history-truncated-to-500-lines-on-each-login
-export HISTFILE=~/.bash_eternal_history
+export HISTFILE=~/.eternal_history_bash
 # Force prompt to write history after every command.
-# http://superuser.com/questions/20900/bash-history-loss
+## http://superuser.com/questions/20900/bash-history-loss
 PROMPT_COMMAND="history -a; $PROMPT_COMMAND"'
+
+  add_to_profile rename 'function rename() {
+  path=$(echo -n $1 | sed "s|/[^/]*$|/|")
+  mv $1 "$path"$2
+}'
 }
 
-install_tools () {
+install_tools() {
   prepare
   terraform_install
   #az_install
@@ -275,10 +344,10 @@ install_tools () {
   krew_install
   kubens_install
   kubectx_install
-  #kubecolor_install # unfortunately breaks tab completion (12.2.25)
   netshoot_install
   k9s_install
   go_install
+  kubecolor_install
   podman_install
   kubectl_neat_install
   yq_install
