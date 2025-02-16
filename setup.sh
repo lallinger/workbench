@@ -88,52 +88,66 @@ function kubectl_install() {
   section=custom_kubectl_completion
   code='\
     __kubectl_debug "=========== starting alias manipulation ==========="\
-    __kubectl_debug "in words '"'"'${words[*]}'"'"', cword '"'"'$cword'"'"'"\
-    if [[ "${words[0]}" == "ka" ]] ; then\
+    __kubectl_debug "in prev '"'"'${prev}'"'"' words '"'"'${words[*]}'"'"', cword '"'"'$cword'"'"'"\
+    if [[ "${words[0]}" == "k" ]] ; then\
+        __kubectl_debug  "called k"\
+        words=("kubectl" "${words[@]:1}")\
+        prev="kubectl"\
+    elif [[ "${words[0]}" == "ka" ]] ; then\
         __kubectl_debug  "called ka"\
-        words=("${words[0]}" "apply" "${words[@]:1}")\
+        words=("kubectl" "apply" "${words[@]:1}")\
         cword=$(($cword+1))\
+        prev="apply"\
     elif [[ "${words[0]}" == "kak" ]] ; then\
         __kubectl_debug  "called kak"\
-        words=("${words[0]}" "apply" "-k" "${words[@]:1}")\
+        words=("kubectl" "apply" "-k" "${words[@]:1}")\
         cword=$(($cword+2))\
+        prev="-k"\
     elif [[ "${words[0]}" == "kaf" ]] ; then\
         __kubectl_debug  "called kaf"\
-        words=("${words[0]}" "apply" "-f" "${words[@]:1}")\
+        words=("kubectl" "apply" "-f" "${words[@]:1}")\
         cword=$(($cword+2))\
+        prev="-f"\
     elif [[ "${words[0]}" == "krm" ]] ; then\
         __kubectl_debug  "called krm"\
-        words=("${words[0]}" "delete" "${words[@]:1}")\
+        words=("kubectl" "delete" "${words[@]:1}")\
         cword=$(($cword+1))\
+        prev="delete"\
     elif [[ "${words[0]}" == "krma" ]] ; then\
         __kubectl_debug  "called krma"\
-        words=("${words[0]}" "delete" "--all" "${words[@]:1}")\
+        words=("kubectl" "delete" "--all" "${words[@]:1}")\
         cword=$(($cword+2))\
+        prev="--all"\
     elif [[ "${words[0]}" == "kg" ]] ; then\
         __kubectl_debug  "called kg"\
-        words=("${words[0]}" "get" "${words[@]:1}")\
+        words=("kubectl" "get" "${words[@]:1}")\
         cword=$(($cword+1))\
+        prev="get"\
     elif [[ "${words[0]}" == "krmk" ]] ; then\
         __kubectl_debug  "called krmk"\
-        words=("${words[0]}" "delete" "-k" "${words[@]:1}")\
+        words=("kubectl" "delete" "-k" "${words[@]:1}")\
         cword=$(($cword+2))\
+        prev="-k"\
     elif [[ "${words[0]}" == "krmf" ]] ; then\
         __kubectl_debug  "called krmf"\
-        words=("${words[0]}" "delete" "-f" "${words[@]:1}")\
+        words=("kubectl" "delete" "-f" "${words[@]:1}")\
         cword=$(($cword+2))\
+        prev="-f"\
     elif [[ "${words[0]}" == "kcns" ]] ; then\
         __kubectl_debug  "called kcns"\
-        words=("${words[0]}" "create" "ns" "${words[@]:1}")\
+        words=("kubectl" "create" "ns" "${words[@]:1}")\
         cword=$(($cword+2))\
+        prev="ns"\
     elif [[ "${words[0]}" == "kng" ]] ; then\
         __kubectl_debug  "called kng"\
-        words=("${words[0]}" "neat" "get" "${words[@]:1}")\
+        words=("kubectl" "neat" "get" "${words[@]:1}")\
         cword=$(($cword+2))\
+        prev="get"\
     else \
-        __kubectl_debug "${words[0]} is not a known => not manipulating"\
+        __kubectl_debug "${words[0]} is not a known alias => not manipulating"\
         unmanipulated=un\
     fi\
-    __kubectl_debug "${unmanipulated}manipulated words '"'"'${words[*]}'"'"', cword '"'"'$cword'"'"'"\
+    __kubectl_debug "${unmanipulated}manipulated prev '"'"'${prev}'"'"' words '"'"'${words[*]}'"'"', cword '"'"'$cword'"'"'"\
 '
 
   grep "#$section" completion_kubectl && (echo "found section $section, replacing" && sed -i "/#$section/,/#\/$section/d" completion_kubectl && sed -i '/^$/N;/\n$/s/\n//;P;D' completion_kubectl) || echo -n
@@ -148,7 +162,7 @@ $code\
     __kubectl_debug "========= starting completion logic =========="' completion_kubectl
   mv completion_kubectl $COMPLETION_FOLDER/kubectl
 
-  add_to_profile kubectl "source $COMPLETION_FOLDER/kubectl"'
+  echo "source $COMPLETION_FOLDER/kubectl"'
 alias k=kubectl
 alias kake="kustomize build --enable-helm . | kubectl apply -f -"
 complete -F __start_kubectl k
@@ -180,7 +194,7 @@ complete -F __start_kubectl kcns
 function kcns(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl create ns ${@}; fi }
 
 complete -F __start_kubectl kng
-function kng(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl neat get ${@}; fi }'
+function kng(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl neat get ${@}; fi }' > .kubectl_aliases # somehow completion only works when it's sourced last. kubectl section gets added in miscelanious_install
 
   kubectl version --client
 }
@@ -379,9 +393,7 @@ export PS1="$WHITE[$TIME$WHITE]$WHITE[$USER_HOST$WHITE]$WHITE[$MAGENTA$WHITE]$CU
 
   sed -i 's/HISTSIZE.*//g' $_bashrc 
   sed -i 's/HISTFILESIZE.*//g' $_bashrc 
-  add_to_profile hist 'alias src="source ~/.bashrc"
-# Eternal bash history.
-# ---------------------
+  add_to_profile hist '# Eternal bash history.
 # Undocumented feature which sets the size to "unlimited".
 # http://stackoverflow.com/questions/9457233/unlimited-bash-history
 export HISTFILESIZE=
@@ -400,7 +412,10 @@ alias hist="history -a"
   mv $1 "$path"$2 
 }'
   
-  add_to_profile bashrc 'alias bashrc="vim ~/.bashrc"'
+  add_to_profile bashrc 'alias bashrc="vim ~/.bashrc"
+alias src="source ~/.bashrc"'
+
+  add_to_profile kubectl "source ~/.kubectl_aliases"
 }
 
 install_tools() {
