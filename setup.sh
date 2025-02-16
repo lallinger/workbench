@@ -84,44 +84,103 @@ function kubectl_install() {
   chmod +x kubectl
   mv kubectl /usr/bin
   kubectl completion bash > completion_kubectl
+
+  section=custom_kubectl_completion
+  code='\
+    __kubectl_debug "=========== starting alias manipulation ==========="\
+    __kubectl_debug "in words '"'"'${words[*]}'"'"', cword '"'"'$cword'"'"'"\
+    if [[ "${words[0]}" == "ka" ]] ; then\
+        __kubectl_debug  "called ka"\
+        words=("${words[0]}" "apply" "${words[@]:1}")\
+        cword=$(($cword+1))\
+    elif [[ "${words[0]}" == "kak" ]] ; then\
+        __kubectl_debug  "called kak"\
+        words=("${words[0]}" "apply" "-k" "${words[@]:1}")\
+        cword=$(($cword+2))\
+    elif [[ "${words[0]}" == "kaf" ]] ; then\
+        __kubectl_debug  "called kaf"\
+        words=("${words[0]}" "apply" "-f" "${words[@]:1}")\
+        cword=$(($cword+2))\
+    elif [[ "${words[0]}" == "krm" ]] ; then\
+        __kubectl_debug  "called krm"\
+        words=("${words[0]}" "delete" "${words[@]:1}")\
+        cword=$(($cword+1))\
+    elif [[ "${words[0]}" == "krma" ]] ; then\
+        __kubectl_debug  "called krma"\
+        words=("${words[0]}" "delete" "--all" "${words[@]:1}")\
+        cword=$(($cword+2))\
+    elif [[ "${words[0]}" == "kg" ]] ; then\
+        __kubectl_debug  "called kg"\
+        words=("${words[0]}" "get" "${words[@]:1}")\
+        cword=$(($cword+1))\
+    elif [[ "${words[0]}" == "krmk" ]] ; then\
+        __kubectl_debug  "called krmk"\
+        words=("${words[0]}" "delete" "-k" "${words[@]:1}")\
+        cword=$(($cword+2))\
+    elif [[ "${words[0]}" == "krmf" ]] ; then\
+        __kubectl_debug  "called krmf"\
+        words=("${words[0]}" "delete" "-f" "${words[@]:1}")\
+        cword=$(($cword+2))\
+    elif [[ "${words[0]}" == "kcns" ]] ; then\
+        __kubectl_debug  "called kcns"\
+        words=("${words[0]}" "create" "ns" "${words[@]:1}")\
+        cword=$(($cword+2))\
+    elif [[ "${words[0]}" == "kng" ]] ; then\
+        __kubectl_debug  "called kng"\
+        words=("${words[0]}" "neat" "get" "${words[@]:1}")\
+        cword=$(($cword+2))\
+    else \
+        __kubectl_debug "${words[0]} is not a known => not manipulating"\
+        unmanipulated=un\
+    fi\
+    __kubectl_debug "${unmanipulated}manipulated words '"'"'${words[*]}'"'"', cword '"'"'$cword'"'"'"\
+'
+
+  grep "#$section" completion_kubectl && (echo "found section $section, replacing" && sed -i "/#$section/,/#\/$section/d" completion_kubectl && sed -i '/^$/N;/\n$/s/\n//;P;D' completion_kubectl) || echo -n
+
+  sed -i '/__kubectl_debug "========= starting completion logic =========="/a'"\
+#$section\
+$code\
+#\/$section" completion_kubectl
+
+  sed -i 's/__kubectl_debug "========= starting completion logic =========="//g' completion_kubectl
+  sed -i "/#\/$section/a"'\
+    __kubectl_debug "========= starting completion logic =========="' completion_kubectl
   mv completion_kubectl $COMPLETION_FOLDER/kubectl
 
   add_to_profile kubectl "source $COMPLETION_FOLDER/kubectl"'
 alias k=kubectl
+alias kake="kustomize build --enable-helm . | kubectl apply -f -"
 complete -F __start_kubectl k
-complete -F __start_kubectl kubecolor
 
 complete -F __start_kubectl ka
-function ka(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 2 && -z "${2}" ]]; then kubectl $1 apply ''; else kubectl $1 apply ${@:2}; fi else kubectl apply ${@}; fi }
+function ka(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl apply ${@}; fi }
 
 complete -F __start_kubectl kak
-function kak(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 21 && -z "${2}" ]]; then kubectl $1 apply -k ''; else kubectl $1 apply -k ${@:2}; fi else kubectl apply -k ${@}; fi }
+function kak(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl apply -k ${@}; fi }
 
 complete -F __start_kubectl kaf
-function kaf(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 2 && -z "${2}" ]]; then kubectl $1 apply -f ''; else kubectl $1 apply -f ${@:2}; fi else kubectl apply -f ${@}; fi }
+function kaf(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl apply -f ${@}; fi }
 
 complete -F __start_kubectl krm
-function krm(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 2 && -z "${2}" ]]; then kubectl $1 delete ''; else kubectl $1 delete ${@:2}; fi else kubectl delete ${@}; fi }
+function krm(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl delete ${@}; fi }
 
 complete -F __start_kubectl krma
-function krma(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 3 && -z "${3}" ]]; then kubectl $1 delete --all ''; else kubectl $1 delete --all ${@:2}; fi else kubectl delete --all ${@}; fi }
+function krma(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl delete --all ${@}; fi }
 
 complete -F __start_kubectl kg
-function kg(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 2 && -z "${2}" ]]; then kubectl $1 get ''; else kubectl $1 get ${@:2}; fi else kubectl get ${@}; fi }
+function kg(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl get ${@}; fi }
 
-alias kake="kustomize build --enable-helm . | kubectl apply -f -"
 complete -F __start_kubectl krmk
-
-function krmk(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 3 && -z "${3}" ]]; then kubectl $1 delete -k ''; else kubectl $1 delete -k ${@:2}; fi else kubectl delete -k ${@}; fi }
+function krmk(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl delete -k ${@}; fi }
 complete -F __start_kubectl krmf
-
-function krmf(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 3 && -z "${3}" ]]; then kubectl $1 delete -f ''; else kubectl $1 delete -f ${@:2}; fi else kubectl delete -f ${@}; fi }
+function krmf(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl delete -f ${@}; fi }
 
 complete -F __start_kubectl kcns
-function kcns(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 3 && -z "${3}" ]]; then kubectl $1 creat ns ''; else kubectl $1 create ns ${@:2}; fi else kubectl create ns ${@}; fi }
+function kcns(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl create ns ${@}; fi }
 
 complete -F __start_kubectl kng
-function kng(){ if [[ $1 == "__complete" ]]; then if [[ $# -eq 2 && -z "${2}" ]]; then kubectl $1 neat get ''; else kubectl $1 neat get ${@:2}; fi else kubectl neat get ${@}; fi }'
+function kng(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl neat get ${@}; fi }'
 
   kubectl version --client
 }
@@ -191,7 +250,8 @@ function kubecolor_install() {
   echo "\e[31minstalling kubecolor\e[0m"
   go install github.com/kubecolor/kubecolor@latest
   add_to_profile kubecolor "alias kc=kubecolor
-  alias kubectl=kubecolor"
+  alias kubectl=kubecolor
+complete -F __start_kubectl kubecolor"
   /root/go/bin/kubecolor
 }
 
@@ -287,9 +347,15 @@ alias _ssh=/usr/bin/ssh'
   #ls $HOME/bin/xxh
 }
 
-miscelanious_install() {
+function speedtest_install() {
+  echo "\e[31minstalling speedtest\e[0m"
+  add_to_profile speedtest 'alias speedtest="wget -O /dev/null https://proof.ovh.net/files/10Gb.dat"
+alias fast=speedtest'
+}
+
+function miscelanious_install() {
   echo "installing miscelanious\e[0m"
-  apt install -y htop vim iotop net-tools
+  apt install -y htop iotop net-tools tree
   
   echo 'set completion-ignore-case On' >> /etc/inputrc
 
@@ -326,12 +392,15 @@ export HISTTIMEFORMAT="[%F %T] "
 export HISTFILE=~/.eternal_history_bash
 # Force prompt to write history after every command.
 ## http://superuser.com/questions/20900/bash-history-loss
-PROMPT_COMMAND="history -a; $PROMPT_COMMAND"'
+alias hist="history -a"
+#PROMPT_COMMAND="history -a; $PROMPT_COMMAND"'
 
   add_to_profile rename 'function rename() {
   path=$(echo -n $1 | sed "s|/[^/]*$|/|")
-  mv $1 "$path"$2
+  mv $1 "$path"$2 
 }'
+  
+  add_to_profile bashrc 'alias bashrc="vim ~/.bashrc"'
 }
 
 install_tools() {
@@ -356,6 +425,7 @@ install_tools() {
   python_install
   fuck_install
   xxh_install
+  speedtest_install
   miscelanious_install
 }
 

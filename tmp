@@ -6,12 +6,57 @@ if [[ "${words[0]}" == "ka" ]] ; then
     words=("${words[0]}" "apply" "${words[@]:1}")
     cword=$(($cword+1))
 fi
+if [[ "${words[0]}" == "kak" ]] ; then
+    __kubectl_debug  "called kak"
+    words=("${words[0]}" "apply" "-k" "${words[@]:1}")
+    cword=$(($cword+1))
+fi
+if [[ "${words[0]}" == "kaf" ]] ; then
+    __kubectl_debug  "called kaf"
+    words=("${words[0]}" "apply" "-f" "${words[@]:1}")
+    cword=$(($cword+1))
+fi
+if [[ "${words[0]}" == "krm" ]] ; then
+    __kubectl_debug  "called krm"
+    words=("${words[0]}" "delete" "${words[@]:1}")
+    cword=$(($cword+1))
+fi
+if [[ "${words[0]}" == "krma" ]] ; then
+    __kubectl_debug  "called krma"
+    words=("${words[0]}" "delete" "--all" "${words[@]:1}")
+    cword=$(($cword+1))
+fi
+if [[ "${words[0]}" == "kg" ]] ; then
+    __kubectl_debug  "called kg"
+    words=("${words[0]}" "get" "${words[@]:1}")
+    cword=$(($cword+1))
+fi
+if [[ "${words[0]}" == "krmk" ]] ; then
+    __kubectl_debug  "called krmk"
+    words=("${words[0]}" "delete" "-k" "${words[@]:1}")
+    cword=$(($cword+1))
+fi
+if [[ "${words[0]}" == "krmf" ]] ; then
+    __kubectl_debug  "called krmf"
+    words=("${words[0]}" "delete" "-f" "${words[@]:1}")
+    cword=$(($cword+1))
+fi
+if [[ "${words[0]}" == "kcns" ]] ; then
+    __kubectl_debug  "called kcns"
+    words=("${words[0]}" "create" "ns" "${words[@]:1}")
+    cword=$(($cword+1))
+fi
+if [[ "${words[0]}" == "kng" ]] ; then
+    __kubectl_debug  "called kng"
+    words=("${words[0]}" "neat" "get" "${words[@]:1}")
+    cword=$(($cword+1))
+fi
 __kubectl_debug "manipulated words '${words[*]}, cword '$cword'"
 
 
 complete -F __start_kubectl ka
-function ka(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl apply ${@}; fi
-}
+function ka(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl apply ${@}; fi }
+
 complete -F __start_kubectl kak
 function kak(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl apply -k ${@}; fi}
 
