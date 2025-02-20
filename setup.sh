@@ -354,6 +354,7 @@ function xxh_install() {
   echo "\e[31minstalling xxh\e[0m"
   apt install -y sshpass
   pipx install xxh-xxh
+  xxh +I xxh-plugin-prerun-dotfiles
   add_to_profile xxh 'alias ssh=xxh
 alias _ssh=/usr/bin/ssh'
 
