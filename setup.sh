@@ -26,7 +26,7 @@ function prepare() {
   export TZ=Europe/Berlin
   echo $TZ > /etc/timezone
   export DEBIAN_FRONTEND=noninteractive
-  apt install -y curl wget git tzdata vim bash-completion apt-utils
+  apt install -y curl wget git tzdata vim bash-completion apt-utils jq
   apt upgrade -y
   add_to_profile bash_completion 'source /etc/bash_completion'
 }
@@ -166,35 +166,27 @@ $code\
 alias k=kubectl
 alias kake="kustomize build --enable-helm . | kubectl apply -f -"
 complete -F __start_kubectl k
-
 complete -F __start_kubectl ka
-function ka(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl apply ${@}; fi }
-
+alias k="kubectl apply"
 complete -F __start_kubectl kak
-function kak(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl apply -k ${@}; fi }
-
+alias k="kubectl apply -k"
 complete -F __start_kubectl kaf
-function kaf(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl apply -f ${@}; fi }
-
+alias k="kubectl apply -f"
 complete -F __start_kubectl krm
-function krm(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl delete ${@}; fi }
-
+alias k="kubectl delete"
 complete -F __start_kubectl krma
-function krma(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl delete --all ${@}; fi }
-
+alias k="kubectl delete --all"
 complete -F __start_kubectl kg
-function kg(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl get ${@}; fi }
-
+alias k="kubectl get"
 complete -F __start_kubectl krmk
-function krmk(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl delete -k ${@}; fi }
+alias k="kubectl delete -k"
 complete -F __start_kubectl krmf
-function krmf(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl delete -f ${@}; fi }
-
+alias k="kubectl delete -f"
 complete -F __start_kubectl kcns
-function kcns(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl create ns ${@}; fi }
-
+alias k="kubectl create ns"
 complete -F __start_kubectl kng
-function kng(){ if [[ $1 == "__complete" ]]; then l=${@};if [[ ${l: -1} == " " ]]; then kubectl ${@} ""; else kubectl ${@}; fi else kubectl neat get ${@}; fi }' > .kubectl_aliases # somehow completion only works when it's sourced last. kubectl section gets added in miscelanious_install
+alias k="kubectl neat get"
+' > .kubectl_aliases # somehow completion only works when it's sourced last. kubectl section gets added in miscelanious_install
 
   kubectl version --client
 }
@@ -251,7 +243,13 @@ function k9s_install() {
 
 function go_install() {
   echo "\e[31minstalling go\e[0m"
-  GO_VERSION=1.23.5
+
+  if command -v go &>/dev/null; then
+    echo "Found pre-existing Go version. removing..."
+    rm -rf /usr/local/go
+  fi
+
+  GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | cut -d' ' -f3 | tr -d 'go')
   wget https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz -O go.tar.gz
   rm -rf /usr/local/go && tar -C /usr/local -xzf go.tar.gz
   add_to_profile go 'export PATH="$PATH:/usr/local/go/bin:'$HOME'/go/bin"'
@@ -302,8 +300,9 @@ function yq_install(){
 
 function ccat_install() {
   echo "\e[31minstalling ccat\e[0m"
-  version=1.17.2
-  wget https://github.com/batmac/ccat/releases/download/v$version/ccat-$version-linux-amd64.tar.gz -O ccat.tar.gz
+  vversion=curl https://api.github.com/repos/batmac/ccat/releases | jq '.[0].tag_name' | sed 's/"//g'
+  version=$(echo $vversion | sed 's/v//g')
+  wget https://github.com/batmac/ccat/releases/download/$vversion/ccat-$version-linux-amd64.tar.gz -O ccat.tar.gz
   tar -xvf ccat.tar.gz
   mv ccat /usr/bin
   ccat --selfupdate
@@ -415,7 +414,44 @@ alias hist="history -a"
   add_to_profile bashrc 'alias bashrc="vim ~/.bashrc"
 alias src="source ~/.bashrc"'
 
+  add_to_profile apt 'alias ai="apt install"
+alias aiy="apt install -y"
+alias alu="apt list --upgradable"
+alias aupd="apt update"
+alias aupg="apt upgrade"'
+
   add_to_profile kubectl "source ~/.kubectl_aliases"
+
+  echo "set nocompatible
+set nomodeline
+syntax on
+set ruler
+set visualbell
+set shiftwidth=2
+set softtabstop=2
+set number
+set laststatus=2
+set expandtab
+set tabstop:2
+set ignorecase
+set smartcase
+set backspace=indent,eol,start
+set autoindent
+set listchars=tab:▸\ 
+set list
+set confirm
+set paste
+if has('mouse')
+  set mouse=a
+endif
+if has('filetype')
+  filetype indent plugin on
+endif
+if has('syntax')
+  syntax on
+endif
+
+" > $HOME/.vimrc
 }
 
 install_tools() {
