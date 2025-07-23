@@ -62,9 +62,9 @@ function az_install() {
 function kustomize_install() {
   echo "\e[31minstalling kustomize\e[0m"
   curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -
-  mv kustomize /usr/bin/
+  mv -f kustomize /usr/bin/
   kustomize completion bash > completion_kustomize
-  mv completion_kustomize $COMPLETION_FOLDER/kustomize
+  mv -f completion_kustomize $COMPLETION_FOLDER/kustomize
   add_to_profile kustomize "source $COMPLETION_FOLDER/kustomize"
   kustomize version
 }
@@ -73,7 +73,7 @@ function helm_install() {
   echo "\e[31minstalling helm\e[0m"
   curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
   helm completion bash > completion_helm
-  mv completion_helm $COMPLETION_FOLDER/helm
+  mv -f completion_helm $COMPLETION_FOLDER/helm
   add_to_profile helm "source $COMPLETION_FOLDER/helm"
   helm version
 }
@@ -82,7 +82,7 @@ function kubectl_install() {
   echo "\e[31minstalling kubectl\e[0m"
   curl -LO https://dl.k8s.io/release/$(curl -LS https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
   chmod +x kubectl
-  mv kubectl /usr/bin
+  mv -f kubectl /usr/bin
   kubectl completion bash > completion_kubectl
 
   section=custom_kubectl_completion
@@ -160,7 +160,7 @@ $code\
   sed -i 's/__kubectl_debug "========= starting completion logic =========="//g' completion_kubectl
   sed -i "/#\/$section/a"'\
     __kubectl_debug "========= starting completion logic =========="' completion_kubectl
-  mv completion_kubectl $COMPLETION_FOLDER/kubectl
+  mv -f completion_kubectl $COMPLETION_FOLDER/kubectl
 
   echo "source $COMPLETION_FOLDER/kubectl"'
 alias k=kubectl
@@ -236,7 +236,7 @@ function k9s_install() {
   apt install -y --fix-missing ./k9s_linux_amd64.deb
   rm ./k9s_linux_amd64.deb
   k9s completion bash > completion_k9s
-  mv completion_k9s $COMPLETION_FOLDER/k9s
+  mv -f completion_k9s $COMPLETION_FOLDER/k9s
   add_to_profile k9s "source $COMPLETION_FOLDER/k9s"
   k9s --version
 }
@@ -284,7 +284,6 @@ alias dbt="docker build . -t"'
 function kubectl_neat_install() {
   echo "\e[31minstalling kubectl neat\e[0m"
   $(find -iname krew -type f) install neat
-  add_to_profile kubectl_neat 'alias kng="kubectl neat get"'
   kubectl plugin list | grep kubectl-neat
 }
 
@@ -293,25 +292,20 @@ function yq_install(){
   wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
   chmod +x /usr/bin/yq
   yq completion bash > completion_yq
-  mv completion_yq $COMPLETION_FOLDER/yq
+  mv -f completion_yq $COMPLETION_FOLDER/yq
   add_to_profile yq "source $COMPLETION_FOLDER/yq"
   yq --version
 }
 
 function ccat_install() {
   echo "\e[31minstalling ccat\e[0m"
-  vversion=curl https://api.github.com/repos/batmac/ccat/releases | jq '.[0].tag_name' | sed 's/"//g'
+  vversion=$(curl https://api.github.com/repos/batmac/ccat/releases | jq '.[0].tag_name' | sed 's/"//g')
   version=$(echo $vversion | sed 's/v//g')
   wget https://github.com/batmac/ccat/releases/download/$vversion/ccat-$version-linux-amd64.tar.gz -O ccat.tar.gz
   tar -xvf ccat.tar.gz
-  mv ccat /usr/bin
-  ccat --selfupdate
+  mv -f ccat /usr/bin
   rm ccat.tar.gz
-  ccat -C bash > completion_ccat
-  mv completion_ccat $COMPLETION_FOLDER/ccat
   add_to_profile ccat "alias cat=ccat
-source $COMPLETION_FOLDER/ccat
-complete -F _ccat_completions cat
 alias _cat=/usr/bin/cat"
 
   ccat --version
@@ -321,7 +315,7 @@ function talosctl_install() {
   echo "\e[31minstalling talosctl\e[0m"
   curl -sL https://talos.dev/install | sh
   talosctl completion bash > completion_talosctl
-  mv completion_talosctl $COMPLETION_FOLDER/talosctl
+  mv -f completion_talosctl $COMPLETION_FOLDER/talosctl
   add_to_profile talosctl "source $COMPLETION_FOLDER/talosctl
 alias tctl=talosctl"
   talosctl version --client
@@ -354,11 +348,21 @@ function xxh_install() {
   echo "\e[31minstalling xxh\e[0m"
   apt install -y sshpass
   pipx install xxh-xxh
-  xxh +I xxh-plugin-prerun-dotfiles
+  /root/.local/bin/xxh +I xxh-plugin-prerun-dotfiles
+  /root/.local/bin/xxh +I xxh-shell-bash
+  /root/.local/bin/xxh +I xxh-plugin-prerun-xxh
+
+  mkdir -p $HOME/.config/xxh
+  echo 'hosts:
+  ".*":
+    +s: bash
+    +I:
+      - xxh-ishell-bash
+      - xxh-plugin-bash-ohmybash
+      - xxh-plugin-prerun-dotfiles' > $HOME/.config/xxh/config.xxhc
+
   add_to_profile xxh 'alias ssh=xxh
 alias _ssh=/usr/bin/ssh'
-
-  #ls $HOME/bin/xxh
 }
 
 function speedtest_install() {
@@ -388,10 +392,9 @@ TIME=$CYAN'"'\T'"'
 USER_HOST=$MAGENTA'"'\u@\h'"'
 KUBECTL=$MAGENTA'"'$(kubectl config current-context)'"'
 CURRENT_PATH=$BLUE'"'\w'"'
-
 export PS1="$WHITE[$TIME$WHITE]$WHITE[$USER_HOST$WHITE]$WHITE[$MAGENTA$WHITE]$CURRENT_PATH$WHITE: $GREEN"'
 
-  sed -i 's/HISTSIZE.*//g' $_bashrc 
+  sed -i 's/HISTSIZE.*//g' $_bashrc
   sed -i 's/HISTFILESIZE.*//g' $_bashrc 
   add_to_profile hist '# Eternal bash history.
 # Undocumented feature which sets the size to "unlimited".
@@ -425,9 +428,7 @@ alias aupg="apt upgrade"'
 
   echo "set nocompatible
 set nomodeline
-syntax on
 set ruler
-set visualbell
 set shiftwidth=2
 set softtabstop=2
 set number
@@ -438,10 +439,8 @@ set ignorecase
 set smartcase
 set backspace=indent,eol,start
 set autoindent
-set listchars=tab:▸\ 
 set list
 set confirm
-set paste
 if has('mouse')
   set mouse=a
 endif
