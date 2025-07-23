@@ -395,9 +395,9 @@ BLUE="\[$(tput setaf 6)\]"
 GREEN="\[$(tput setaf 34)\]"
 TIME=$CYAN'"'\T'"'
 USER_HOST=$MAGENTA'"'\u@\h'"'
-KUBECTL=$MAGENTA'"'$(kubectl config current-context)'"'
+KUBECTL=$MAGENTA'"'"'$(kctx)/$(kns -c)'"'"'
 CURRENT_PATH=$BLUE'"'\w'"'
-export PS1="$WHITE[$TIME$WHITE]$WHITE[$USER_HOST$WHITE]$WHITE[$MAGENTA$WHITE]$CURRENT_PATH$WHITE: $GREEN"'
+export PS1="$WHITE[$TIME$WHITE]$WHITE[$USER_HOST$WHITE]$WHITE[$KUBECTL$WHITE]$CURRENT_PATH$WHITE: $GREEN"'
 
   sed -i 's/HISTSIZE.*//g' $_bashrc
   sed -i 's/HISTFILESIZE.*//g' $_bashrc 
