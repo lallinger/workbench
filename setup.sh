@@ -35,12 +35,11 @@ function prepare() {
 function terraform_install() {
   echo "\e[31minstalling terraform\e[0m"
   apt install -y gnupg software-properties-common
-  wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
   wget -O- https://apt.releases.hashicorp.com/gpg |  gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null
   echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
   apt update
   apt install -y terraform
-  terraform -install-autocomplete
+  #terraform -install-autocomplete
   add_to_profile terraform 'complete -C /usr/bin/terraform tf
 complete -C /usr/bin/terraform terraform
 alias tf=terraform
@@ -210,22 +209,22 @@ function krew_install() {
 
 function kubens_install() {
   echo "\e[31minstalling kubens\e[0m"
-  $(find -iname krew -type f) install ns
+  $(find $HOME -iname krew -type f) install ns
   add_to_profile kubens 'alias kns="kubectl ns"'
   kubectl plugin list | grep kubectl-ns
 }
 
 function kubectx_install() {
   echo "\e[31minstalling kubectx\e[0m"
-  $(find -iname krew -type f) install ctx
+  $(find $HOME -iname krew -type f) install ctx
   add_to_profile kubectx 'alias kctx="kubectl ctx"'
   kubectl plugin list | grep kubectl-ctx
 }
 
 function netshoot_install() {
   echo "\e[31minstalling netshoot\e[0m"
-  $(find -iname krew -type f) index add netshoot https://github.com/nilic/kubectl-netshoot.git
-  $(find -iname krew -type f) install netshoot/netshoot
+  $(find $HOME -iname krew -type f) index add netshoot https://github.com/nilic/kubectl-netshoot.git
+  $(find $HOME -iname krew -type f) install netshoot/netshoot
   add_to_profile netshoot 'alias netshoot="k netshoot run tmp"'
   kubectl plugin list | grep kubectl-netshoot
 }
@@ -283,7 +282,7 @@ alias dbt="docker build . -t"'
 
 function kubectl_neat_install() {
   echo "\e[31minstalling kubectl neat\e[0m"
-  $(find -iname krew -type f) install neat
+  $(find $HOME -iname krew -type f) install neat
   kubectl plugin list | grep kubectl-neat
 }
 
