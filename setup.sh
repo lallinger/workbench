@@ -122,6 +122,11 @@ function kubectl_install() {
         words=("kubectl" "get" "${words[@]:1}")\
         cword=$(($cword+1))\
         prev="get"\
+    elif [[ "${words[0]}" == "kgp" ]] ; then\
+        __kubectl_debug  "called kgp"\
+        words=("kubectl" "get" "pods" "${words[@]:1}")\
+        cword=$(($cword+2))\
+        prev="get"\
     elif [[ "${words[0]}" == "krmk" ]] ; then\
         __kubectl_debug  "called krmk"\
         words=("kubectl" "delete" "-k" "${words[@]:1}")\
@@ -150,12 +155,10 @@ function kubectl_install() {
 '
 
   grep "#$section" completion_kubectl && (echo "found section $section, replacing" && sed -i "/#$section/,/#\/$section/d" completion_kubectl && sed -i '/^$/N;/\n$/s/\n//;P;D' completion_kubectl) || echo -n
-
   sed -i '/__kubectl_debug "========= starting completion logic =========="/a'"\
 #$section\
 $code\
 #\/$section" completion_kubectl
-
   sed -i 's/__kubectl_debug "========= starting completion logic =========="//g' completion_kubectl
   sed -i "/#\/$section/a"'\
     __kubectl_debug "========= starting completion logic =========="' completion_kubectl
@@ -166,25 +169,27 @@ alias k=kubectl
 alias kake="kustomize build --enable-helm . | kubectl apply -f -"
 complete -F __start_kubectl k
 complete -F __start_kubectl ka
-alias k="kubectl apply"
+alias ka="kubectl apply"
 complete -F __start_kubectl kak
-alias k="kubectl apply -k"
+alias kak="kubectl apply -k"
 complete -F __start_kubectl kaf
-alias k="kubectl apply -f"
+alias kaf="kubectl apply -f"
 complete -F __start_kubectl krm
-alias k="kubectl delete"
+alias krm="kubectl delete"
 complete -F __start_kubectl krma
-alias k="kubectl delete --all"
+alias krma="kubectl delete --all"
 complete -F __start_kubectl kg
-alias k="kubectl get"
+alias kg="kubectl get"
+complete -F __start_kubectl kgp
+alias kgp="kubectl get pods"
 complete -F __start_kubectl krmk
-alias k="kubectl delete -k"
+alias krmk="kubectl delete -k"
 complete -F __start_kubectl krmf
-alias k="kubectl delete -f"
+alias krmf="kubectl delete -f"
 complete -F __start_kubectl kcns
-alias k="kubectl create ns"
+alias kns="kubectl create ns"
 complete -F __start_kubectl kng
-alias k="kubectl neat get"
+alias kng="kubectl neat get"
 ' > $HOME/.kubectl_aliases # somehow completion only works when it's sourced last. kubectl section gets added in miscelanious_install
 
   kubectl version --client
