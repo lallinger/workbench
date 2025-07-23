@@ -445,6 +445,7 @@ set smartcase
 set backspace=indent,eol,start
 set autoindent
 set list
+set listchars=tab:>-
 set confirm
 if has('mouse')
   set mouse=a
