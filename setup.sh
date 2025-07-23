@@ -185,7 +185,7 @@ complete -F __start_kubectl kcns
 alias k="kubectl create ns"
 complete -F __start_kubectl kng
 alias k="kubectl neat get"
-' > .kubectl_aliases # somehow completion only works when it's sourced last. kubectl section gets added in miscelanious_install
+' > $HOME/.kubectl_aliases # somehow completion only works when it's sourced last. kubectl section gets added in miscelanious_install
 
   kubectl version --client
 }
@@ -223,7 +223,7 @@ function kubectx_install() {
 
 function netshoot_install() {
   echo "\e[31minstalling netshoot\e[0m"
-  $(find $HOME -iname krew -type f) index add netshoot https://github.com/nilic/kubectl-netshoot.git
+  $(find $HOME -iname krew -type f) index add netshoot https://github.com/nilic/kubectl-netshoot.git || echo index already added
   $(find $HOME -iname krew -type f) install netshoot/netshoot
   add_to_profile netshoot 'alias netshoot="k netshoot run tmp"'
   kubectl plugin list | grep kubectl-netshoot
@@ -474,7 +474,7 @@ install_tools() {
   talosctl_install
   python_install
   fuck_install
-  xxh_install
+  #xxh_install
   speedtest_install
   miscelanious_install
 }
