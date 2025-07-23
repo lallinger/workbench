@@ -385,7 +385,8 @@ function miscelanious_install() {
 git config --global core.eol lf
 git config --global core.filemode false
 alias gitwip="git add . && git commit -m wip && git pull --rebase && git push"
-alias gitgud='"'"'_gitgud() { args="$@" && git add . && git commit -m "$args" && git pull --rebase && git push ;}; _gitgud'"'"
+alias gitgud='"'"'_gitgud() { args="$@" && git add . && git commit -m "$args" && git pull --rebase && git push ;}; _gitgud'"'
+alias gg=gitgud"
 
   add_to_profile prompt 'WHITE="\[$(tput setaf 7)\]"
 CYAN="\[$(tput setaf 3)\]"
