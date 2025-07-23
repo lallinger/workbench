@@ -187,7 +187,7 @@ alias krmk="kubectl delete -k"
 complete -F __start_kubectl krmf
 alias krmf="kubectl delete -f"
 complete -F __start_kubectl kcns
-alias kns="kubectl create ns"
+alias kcns="kubectl create ns"
 complete -F __start_kubectl kng
 alias kng="kubectl neat get"
 ' > $HOME/.kubectl_aliases # somehow completion only works when it's sourced last. kubectl section gets added in miscelanious_install
