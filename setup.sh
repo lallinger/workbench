@@ -375,6 +375,20 @@ function speedtest_install() {
 alias fast=speedtest'
 }
 
+function operator_sdk_install() {
+  export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
+  export OS=$(uname | awk '{print tolower($0)}')
+  
+  export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/latest/download/
+  curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
+  
+  chmod +x operator-sdk_${OS}_${ARCH} && mv operator-sdk_${OS}_${ARCH} /usr/bin/operator-sdk
+
+  operator-sdk completion bash > completion_operator_sdk
+  mv -f completion_operator_sdk $COMPLETION_FOLDER/operator-sdk
+  add_to_profile operator_sdk "source $COMPLETION_FOLDER/operator-sdk"
+}
+
 function miscelanious_install() {
   echo "installing miscelanious\e[0m"
   apt install -y htop iotop net-tools tree
@@ -483,6 +497,7 @@ install_tools() {
   fuck_install
   #xxh_install
   speedtest_install
+  operator_sdk_install
   miscelanious_install
 }
 
