@@ -376,17 +376,28 @@ alias fast=speedtest'
 }
 
 function operator_sdk_install() {
+  echo "\e[31minstalling operator-sdk\e[0m"
   export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
   export OS=$(uname | awk '{print tolower($0)}')
-  
   export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/latest/download/
   curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
-  
-  chmod +x operator-sdk_${OS}_${ARCH} && mv operator-sdk_${OS}_${ARCH} /usr/bin/operator-sdk
+  chmod +x operator-sdk_${OS}_${ARCH}
+  mv -f operator-sdk_${OS}_${ARCH} /usr/bin/operator-sdk
 
   operator-sdk completion bash > completion_operator_sdk
   mv -f completion_operator_sdk $COMPLETION_FOLDER/operator-sdk
   add_to_profile operator_sdk "source $COMPLETION_FOLDER/operator-sdk"
+}
+
+function argocd_install() {
+  echo "\e[31minstalling argocd\e[0m"
+  curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+  chmod +x argocd-linux-amd64 
+  mv -f argocd-linux-amd64 /usr/bin/argocd
+  
+  argocd completion bash > completion_argocd
+  mv -f completion_argocd $COMPLETION_FOLDER/argocd
+  add_to_profile argocd "source $COMPLETION_FOLDER/argocd"
 }
 
 function miscelanious_install() {
@@ -498,6 +509,7 @@ install_tools() {
   #xxh_install
   speedtest_install
   operator_sdk_install
+  argocd_install
   miscelanious_install
 }
 
