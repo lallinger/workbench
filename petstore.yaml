@@ -1,0 +1,69 @@
+
+##########################
+#                        #
+#        Example         #
+#        Service         #
+#                        #
+#                        #
+##########################
+# petstore service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: petstore
+  name: petstore
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: petstore
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: petstore
+    spec:
+      containers:
+      - image: soloio/petstore-example:latest
+        name: petstore
+        ports:
+        - containerPort: 8080
+          name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: petstore
+  namespace: default
+  labels:
+    service: petstore
+spec:
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+  selector:
+    app: petstore
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+ name: petstore-ingress
+ annotations:
+    # note: this annotation is only required if you've set 
+    # REQUIRE_INGRESS_CLASS=true in the environment for 
+    # the ingress deployment
+    kubernetes.io/ingress.class: gloo
+spec:
+  rules:
+  - host: test.lallinger.tech
+    http:
+      paths:
+      - path: /.*
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: petstore
+            port:
+              number: 8080

@@ -400,17 +400,6 @@ function argocd_install() {
   add_to_profile argocd "source $COMPLETION_FOLDER/argocd"
 }
 
-function glooctl_install() {
-  echo "\e[31minstalling glooctl\e[0m"
-  curl -sL https://run.solo.io/gloo/install | sh
-  export PATH=$HOME/.gloo/bin:$PATH
-
-  glooctl completion bash > completion_glooctl
-  mv -f completion_glooctl $COMPLETION_FOLDER/glooctl
-  add_to_profile glooctl "export PATH=$HOME/.gloo/bin:$PATH
-source $COMPLETION_FOLDER/glooctl"
-}
-
 function miscelanious_install() {
   echo "installing miscelanious\e[0m"
   apt install -y htop iotop net-tools tree
@@ -521,7 +510,6 @@ install_tools() {
   speedtest_install
   operator_sdk_install
   argocd_install
-  glooctl_install
   miscelanious_install
 }
 
