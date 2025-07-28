@@ -400,6 +400,20 @@ function argocd_install() {
   add_to_profile argocd "source $COMPLETION_FOLDER/argocd"
 }
 
+function virtctl_install() {
+  echo "\e[31minstalling virtctl\e[0m"
+  
+  $(find $HOME -iname krew -type f) install virt
+  export VERSION=$(curl https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt)
+  wget https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/virtctl-${VERSION}-linux-amd64
+  chmod +x virtctl-${VERSION}-linux-amd64 
+  mv -f virtctl-${VERSION}-linux-amd64 /usr/bin/virtctl
+  
+  virtctl completion bash > completion_virtctl
+  mv -f completion_virtctl $COMPLETION_FOLDER/virtctl
+  add_to_profile virtctl "source $COMPLETION_FOLDER/virtctl"
+}
+
 function miscelanious_install() {
   echo "installing miscelanious\e[0m"
   apt install -y htop iotop net-tools tree
@@ -511,6 +525,7 @@ install_tools() {
   speedtest_install
   operator_sdk_install
   argocd_install
+  virtctl_install
   miscelanious_install
 }
 
