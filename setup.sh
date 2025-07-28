@@ -473,6 +473,7 @@ alias aupg="apt upgrade"'
 
   echo "set nocompatible
 set nomodeline
+set paste
 set ruler
 set shiftwidth=2
 set softtabstop=2
