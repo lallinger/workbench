@@ -435,7 +435,7 @@ BLUE="\[$(tput setaf 6)\]"
 GREEN="\[$(tput setaf 34)\]"
 TIME=$CYAN'"'\T'"'
 USER_HOST=$MAGENTA'"'\u@\h'"'
-KUBECTL=$MAGENTA'"'"'$(kctx)/$(kns -c)'"'"'
+KUBECTL=$MAGENTA'"'"'$(kubectl config current-context)/$(kubectl config view --minify -o jsonpath='{..namespace}')'"'"'
 CURRENT_PATH=$BLUE'"'\w'"'
 export PS1="$WHITE[$TIME$WHITE]$WHITE[$USER_HOST$WHITE]$WHITE[$KUBECTL$WHITE]$CURRENT_PATH$WHITE: $GREEN"'
 
