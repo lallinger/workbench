@@ -417,9 +417,9 @@ function neovim_install() {
 
 	apt install -y ruby-full fzf ripgrep fd-find lua5.4 nodejs
 	gem install neovim
-  curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
-  chmod u+x nvim-linux-x86_64.appimage
-  mv -f nvim-linux-x86_64.appimage /usr/bin/nvim
+	curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
+	chmod u+x nvim-linux-x86_64.appimage
+	mv -f nvim-linux-x86_64.appimage /usr/bin/nvim
 
 	rm -rf $HOME/.config/nvim
 	git clone https://github.com/LazyVim/starter $HOME/.config/nvim
@@ -430,6 +430,22 @@ function neovim_install() {
 	mkdir -p $HOME/.local/share/fonts
 	mv -f fonts/*.ttf $HOME/.local/share/fonts
 	rm -rf fonts JetBrainsMono.zip
+
+	echo 'return {
+  {
+    "LazyVim/LazyVim",
+    keys = {
+      {
+        "<F12>",
+        function()
+          vim.o.paste = not vim.o.paste
+          vim.notify("Paste mode: " .. (vim.o.paste and "ON" or "OFF"))
+        end,
+        desc = "Toggle paste mode",
+      },
+    },
+  },
+}' >$HOME/.config/nvim/lua/plugins/toggle-paste.lua
 
 	# open issue: https://github.com/LazyVim/LazyVim/issues/6039
 	echo 'return {
