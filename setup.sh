@@ -509,7 +509,7 @@ function miscelanious_install() {
   echo 'set completion-ignore-case On' >>/etc/inputrc
 
   add_to_profile lsd 'alias ls=lsd
-ll=lsd -l'
+ll="lsd -l"'
 
   add_to_profile git 'git config --global core.autocrlf false
 git config --global core.eol lf
