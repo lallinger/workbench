@@ -63,7 +63,8 @@ function kustomize_install() {
   mv -f kustomize /usr/bin/
   kustomize completion bash >completion_kustomize
   mv -f completion_kustomize $COMPLETION_FOLDER/kustomize
-  add_to_profile kustomize "source $COMPLETION_FOLDER/kustomize"
+  add_to_profile kustomize 'source $COMPLETION_FOLDER/kustomize
+alias touchk="touch kustomization.yaml && kustomize edit add resource *"'
   kustomize version
 }
 
@@ -458,8 +459,7 @@ mkdir -p $HOME/.config/nvim
 cp -f $HOME/.vimrc $HOME/.config/nvim/init.vim
 git config --global core.editor nvim
 export EDITOR=nvim
-export VISUAL=nvim
-"
+export VISUAL=nvim"
 }
 
 function miscelanious_install() {
