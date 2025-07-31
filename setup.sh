@@ -506,7 +506,9 @@ function chatgpt_install() {
   mv chatgpt-linux-amd64 /usr/local/bin/chatgpt
 
   add_to_profile chatgpt "alias c=chatgpt
-export OPENAI_MODEL=gpt-4.1-nano"
+export OPENAI_MODEL=gpt-4.1-nano
+export OPENAI_TRACK_TOKEN_USAGE=true
+export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'"
 }
 
 function miscelanious_install() {
