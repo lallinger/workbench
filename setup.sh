@@ -495,8 +495,6 @@ function neovim_install() {
 }' >$HOME/.config/nvim/lua/plugins/mason-workaround.lua
 
   add_to_profile neovim "alias vim=nvim
-mkdir -p $HOME/.config/nvim
-cp -f $HOME/.vimrc $HOME/.config/nvim/init.vim
 git config --global core.editor nvim
 export EDITOR=nvim
 export VISUAL=nvim"
