@@ -60,7 +60,7 @@ function az_install() {
 function kustomize_install() {
   echo "\e[31minstalling kustomize\e[0m"
   curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -
-  mv -f kustomize /usr/bin/
+  mv -f kustomize /usr/local/bin/
   kustomize completion bash >completion_kustomize
   mv -f completion_kustomize $COMPLETION_FOLDER/kustomize
   add_to_profile kustomize 'source'" $COMPLETION_FOLDER/kustomize"'
@@ -81,7 +81,7 @@ function kubectl_install() {
   echo "\e[31minstalling kubectl\e[0m"
   curl -LO https://dl.k8s.io/release/$(curl -LS https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
   chmod +x kubectl
-  mv -f kubectl /usr/bin
+  mv -f kubectl /usr/local/bin
   kubectl completion bash >completion_kubectl
 
   section=custom_kubectl_completion
@@ -292,8 +292,8 @@ function kubectl_neat_install() {
 
 function yq_install() {
   echo "\e[31minstalling yq\e[0m"
-  wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
-  chmod +x /usr/bin/yq
+  wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+  chmod +x /usr/local/bin/yq
   yq completion bash >completion_yq
   mv -f completion_yq $COMPLETION_FOLDER/yq
   add_to_profile yq "source $COMPLETION_FOLDER/yq"
@@ -306,10 +306,10 @@ function ccat_install() {
   version=$(echo $vversion | sed 's/v//g')
   wget https://github.com/batmac/ccat/releases/download/$vversion/ccat-$version-linux-amd64.tar.gz -O ccat.tar.gz
   tar -xvf ccat.tar.gz
-  mv -f ccat /usr/bin
+  mv -f ccat /usr/local/bin
   rm ccat.tar.gz
   add_to_profile ccat "alias cat=ccat
-alias _cat=/usr/bin/cat"
+alias _cat=/usr/local/bin/cat"
 
   ccat --version
 }
@@ -381,7 +381,7 @@ function operator_sdk_install() {
   export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/latest/download/
   curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
   chmod +x operator-sdk_${OS}_${ARCH}
-  mv -f operator-sdk_${OS}_${ARCH} /usr/bin/operator-sdk
+  mv -f operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
 
   operator-sdk completion bash >completion_operator_sdk
   mv -f completion_operator_sdk $COMPLETION_FOLDER/operator-sdk
@@ -392,7 +392,7 @@ function argocd_install() {
   echo "\e[31minstalling argocd\e[0m"
   curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
   chmod +x argocd-linux-amd64
-  mv -f argocd-linux-amd64 /usr/bin/argocd
+  mv -f argocd-linux-amd64 /usr/local/bin/argocd
 
   argocd completion bash >completion_argocd
   mv -f completion_argocd $COMPLETION_FOLDER/argocd
@@ -406,7 +406,7 @@ function virtctl_install() {
   export VERSION=$(curl https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt)
   wget https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/virtctl-${VERSION}-linux-amd64
   chmod +x virtctl-${VERSION}-linux-amd64
-  mv -f virtctl-${VERSION}-linux-amd64 /usr/bin/virtctl
+  mv -f virtctl-${VERSION}-linux-amd64 /usr/local/bin/virtctl
 
   virtctl completion bash >completion_virtctl
   mv -f completion_virtctl $COMPLETION_FOLDER/virtctl
@@ -420,7 +420,7 @@ function neovim_install() {
   gem install neovim
   curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
   chmod u+x nvim-linux-x86_64.appimage
-  mv -f nvim-linux-x86_64.appimage /usr/bin/nvim
+  mv -f nvim-linux-x86_64.appimage /usr/local/bin/nvim
 
   rm -rf $HOME/.config/nvim
   git clone https://github.com/LazyVim/starter $HOME/.config/nvim
@@ -503,7 +503,7 @@ function chatgpt_install() {
   echo "installing chatgpt\e[0m"
   wget https://github.com/kardolus/chatgpt-cli/releases/latest/download/chatgpt-linux-amd64
   chmod +x chatgpt-linux-amd64
-  mv chatgpt-linux-amd64 /usr/bin/chatgpt
+  mv chatgpt-linux-amd64 /usr/local/bin/chatgpt
 
   add_to_profile chatgpt "alias c=chatgpt
 export OPENAI_MODEL=gpt-4.1-nano"
