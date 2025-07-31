@@ -499,6 +499,15 @@ git config --global core.editor nvim
 export EDITOR=nvim
 export VISUAL=nvim"
 }
+function chatgpt_install() {
+  echo "installing chatgpt\e[0m"
+  wget https://github.com/kardolus/chatgpt-cli/releases/latest/download/chatgpt-linux-amd64
+  chmod +x chatgpt-linux-amd64
+  mv chatgpt-linux-amd64 /usr/bin/chatgpt
+
+  add_to_profile chatgpt "alias c=chatgpt
+export OPENAI_MODEL=gpt-4.1-nano"
+}
 
 function miscelanious_install() {
   echo "installing miscelanious\e[0m"
@@ -508,6 +517,8 @@ function miscelanious_install() {
 
   add_to_profile lsd 'alias ls=lsd
 ll="lsd -l"'
+
+  add_to_profile secure 'source ~/.secure_vars'
 
   add_to_profile git 'git config --global core.autocrlf false
 git config --global core.eol lf
@@ -590,6 +601,7 @@ install_tools() {
   argocd_install
   virtctl_install
   neovim_install
+  chatgpt_install
   miscelanious_install
 }
 
