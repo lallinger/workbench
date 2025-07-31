@@ -63,7 +63,7 @@ function kustomize_install() {
   mv -f kustomize /usr/bin/
   kustomize completion bash >completion_kustomize
   mv -f completion_kustomize $COMPLETION_FOLDER/kustomize
-  add_to_profile kustomize 'source $COMPLETION_FOLDER/kustomize
+  add_to_profile kustomize 'source'" $COMPLETION_FOLDER/kustomize"'
 alias touchk="touch kustomization.yaml && kustomize edit add resource *"'
   kustomize version
 }
