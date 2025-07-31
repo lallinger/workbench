@@ -504,9 +504,12 @@ export VISUAL=nvim"
 
 function miscelanious_install() {
   echo "installing miscelanious\e[0m"
-  apt install -y htop iotop net-tools tree
+  apt install -y htop iotop net-tools tree lsd
 
   echo 'set completion-ignore-case On' >>/etc/inputrc
+
+  add_to_profile lsd 'alias ls=lsd
+ll=lsd -l'
 
   add_to_profile git 'git config --global core.autocrlf false
 git config --global core.eol lf
