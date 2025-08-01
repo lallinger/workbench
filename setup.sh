@@ -416,7 +416,7 @@ function virtctl_install() {
 function neovim_install() {
   echo "\e[31minstalling neovim\e[0m"
 
-  apt install -y ruby-full fzf ripgrep fd-find lua5.4 nodejs
+  apt install -y ruby-full fzf ripgrep fd-find lua5.4 nodejs liblua5.4-0 liblua5.4-dev
   gem install neovim
   curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
   chmod u+x nvim-linux-x86_64.appimage
@@ -431,6 +431,31 @@ function neovim_install() {
   mkdir -p $HOME/.local/share/fonts
   mv -f fonts/*.ttf $HOME/.local/share/fonts
   rm -rf fonts JetBrainsMono.zip
+
+  wget https://luarocks.org/releases/luarocks-3.12.2.tar.gz
+  tar zxpf luarocks-3.12.2.tar.gz
+  pushd luarocks-3.12.2
+  ./configure && make && make install
+  luarocks install luasocket
+  popd
+  rm -rf luarocks-3.12.2 luarocks-3.12.2.tar.gz
+
+  echo 'require("config.lazy")
+vim.g.clipboard = "osc52"' >$HOME/.config/nvim/init.lua
+
+  echo "local function map_visual(shortcut, action)
+  vim.keymap.set('v', shortcut, action, { noremap = true })
+end
+local function map_normal(shortcut, action)
+  vim.keymap.set('n', shortcut, action, { noremap = true })
+end
+
+map_normal('<C-c>', ':q<CR>') -- close
+map_normal('<C-s>', ':w<CR>') -- save
+map_normal('t', 'za') -- toggle section
+map_normal('ku', 'gcc') -- toggle comment
+map_visual('ku', 'gc') -- toggle comment
+map_normal('<C-f>', '/') -- search" >$HOME/.config/nvim/lua/config/keymaps.lua
 
   echo 'return {
   {
@@ -504,6 +529,7 @@ function chatgpt_install() {
   wget https://github.com/kardolus/chatgpt-cli/releases/latest/download/chatgpt-linux-amd64
   chmod +x chatgpt-linux-amd64
   mv chatgpt-linux-amd64 /usr/local/bin/chatgpt
+  mkdir -p $HOME/.chatgpt-cli
 
   add_to_profile chatgpt "alias c=chatgpt
 export OPENAI_MODEL=gpt-4.1-nano
