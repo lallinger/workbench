@@ -701,7 +701,7 @@ install_tools() {
   fuck_install
   #xxh_install
   speedtest_install
-  #operator_sdk_install
+  operator_sdk_install
   argocd_install
   virtctl_install
   neovim_install
