@@ -441,7 +441,9 @@ function neovim_install() {
   rm -rf luarocks-3.12.2 luarocks-3.12.2.tar.gz
 
   echo 'require("config.lazy")
-vim.g.clipboard = "osc52"' >$HOME/.config/nvim/init.lua
+vim.g.clipboard = "osc52"
+vim.cmd(":set listchars=eol:$,tab:>-,trail:~,extends:>,precedes:<,space:⋅")
+vim.cmd(":set nolist")' >$HOME/.config/nvim/init.lua
 
   echo "local opts = { noremap = true}
 
@@ -467,14 +469,32 @@ vim.keymap.set('n', 'ku', 'gcc',{remap=true}) -- toggle comment
 vim.keymap.set('v', 'ku', 'gc',{remap=true}) -- toggle comment
 vim.keymap.set('n', 'kc', 'gcc',{remap=true}) -- toggle comment
 vim.keymap.set('v', 'kc', 'gc',{remap=true}) -- toggle comment
-map_visual(':', '<ESC>:') -- toggle comment
 map_normal('<C-f>', '/') -- search
 map_normal('<C-y>', '<C-r>') -- redo
 map_normal('<C-z>', 'u') -- undo
-map_normal('<C-R>', ':%s///gc<Left><Left><Left><Left>') -- search and replace
-map_normal('<F2>', ':%s///gc<Left><Left><Left><Left>') -- search and replace
-vim.keymap.set('v','<F2>', ':%s/\\\\%V//gc<Left><Left><Left>',{remap=true}) -- search and replace selected
-vim.keymap.set('v','<C-R>', ':%s/\\\\%V//gc<Left><Left><Left>',{remap=true}) -- search and replace selected
+map_normal('<C-R>', [[:%s/\<<C-r><C-w>\>//gc<Left><Left><Left>]]) -- search and replace selected word
+map_normal('<F2>', [[:%s/\<<C-r><C-w>\>//gc<Left><Left><Left>]]) -- search and replace selected word
+vim.keymap.set('v', '<F2>', function()
+  local sel_raw = vim.fn.getregion(vim.fn.getpos('v'), vim.fn.getpos('.'))
+  if #sel_raw > 1 then
+    -- search and replace in selected text
+    vim.api.nvim_input(':s///gc<Left><Left><Left><Left>')
+  else
+    -- search and replace selected single line text
+    vim.api.nvim_input('\"hy:%s/<C-r>h//gc<Left><Left><left>')
+  end
+end)
+vim.keymap.set('v', '<C-R>', function()
+  local sel_raw = vim.fn.getregion(vim.fn.getpos('v'), vim.fn.getpos('.'))
+  if #sel_raw > 1 then
+    -- search and replace in selected text
+    vim.api.nvim_input(':s///gc<Left><Left><Left><Left>')
+  else
+    -- search and replace selected single line text
+    vim.api.nvim_input('\"hy:%s/<C-r>h//gc<Left><Left><left>')
+  end
+end)
+
 map_normal('6', '<C-w>l') -- switch to right window
 map_normal('4', '<C-w>h') -- switch to left window
 map_normal('8', ':bnext<CR>') -- switch to next tab #TODO
@@ -483,6 +503,9 @@ map_normal('<A-8>', '<cmd>resize +2<cr>')
 map_normal('<A-2>', '<cmd>resize -2<cr>')
 map_normal('<A-4>', '<cmd>vertical resize -2<cr>')
 map_normal('<A-6>', '<cmd>vertical resize +2<cr>')
+map_normal('<F11>',function()
+  vim.opt.list = not vim.opt.list:get()
+end) -- show hidden
 
 -- Open file in a new window
 vim.keymap.set('n', '<C-t>', function()
