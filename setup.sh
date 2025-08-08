@@ -240,7 +240,44 @@ function k9s_install() {
   rm ./k9s_linux_amd64.deb
   k9s completion bash >completion_k9s
   mv -f completion_k9s $COMPLETION_FOLDER/k9s
-  add_to_profile k9s "source $COMPLETION_FOLDER/k9s"
+  add_to_profile k9s "source $COMPLETION_FOLDER/k9s
+alias kd=k9s"
+
+  echo 'k9s:
+  liveViewAutoRefresh: true
+  refreshRate: 1
+  reactive: true
+  noIcons: false' >$HOME/.config/k9s/config.yaml
+  echo 'hotKeys:
+  shift-1:
+    shortCut: Shift-1
+    description: pods
+    command: pods
+  shift-2:
+    shortCut: Shift-2
+    description: deployments
+    command: deployments
+  shift-3:
+    shortCut: Shift-3
+    description: service
+    command: service
+  shift-4:
+    shortCut: Shift-4
+    description: ingress
+    command: ingress
+  shift-5:
+    shortCut: Shift-5
+    description: secrets
+    command: secrets
+  shift-6:
+    shortCut: Shift-6
+    description: configmaps
+    command: configmaps
+  shift-7:
+    shortCut: Shift-7
+    description: application
+    command: application' >$HOME/.config/k9s/aliases.yaml
+
   k9s --version
 }
 
@@ -463,6 +500,14 @@ map_normal('<C-c>', function()
   end
 end)
 
+local blink = require('blink.cmp')
+blink.setup({
+  keymap = {
+    ['<C-l>'] = { 'cancel' },  -- cancel completion
+  }
+})
+
+vim.keymap.set('i', '<C-l>', '<C-e>',{remap=true}) -- break completion
 map_normal('<C-s>', ':w<CR>') -- save
 map_normal('t', 'za') -- toggle section
 vim.keymap.set('n', 'ku', 'gcc',{remap=true}) -- toggle comment
@@ -608,7 +653,7 @@ function chatgpt_install() {
   mkdir -p $HOME/.chatgpt-cli
 
   add_to_profile chatgpt "alias c=chatgpt
-export OPENAI_MODEL=gpt-4.1-nano
+export OPENAI_MODEL=gpt-5-nano
 export OPENAI_TRACK_TOKEN_USAGE=true
 export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'"
 }
