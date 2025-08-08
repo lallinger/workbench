@@ -248,35 +248,36 @@ alias kd=k9s"
   refreshRate: 1
   reactive: true
   noIcons: false' >$HOME/.config/k9s/config.yaml
+
   echo 'hotKeys:
-  shift-1:
-    shortCut: Shift-1
+  F1:
+    shortCut: F1
     description: pods
     command: pods
-  shift-2:
-    shortCut: Shift-2
+  F2:
+    shortCut: F2
     description: deployments
     command: deployments
-  shift-3:
-    shortCut: Shift-3
+  F3:
+    shortCut: F3
     description: service
     command: service
-  shift-4:
-    shortCut: Shift-4
+  F4:
+    shortCut: F4
     description: ingress
     command: ingress
-  shift-5:
-    shortCut: Shift-5
+  F5:
+    shortCut: F5
     description: secrets
     command: secrets
-  shift-6:
-    shortCut: Shift-6
+  F6:
+    shortCut: F6
     description: configmaps
     command: configmaps
-  shift-7:
-    shortCut: Shift-7
+  F7:
+    shortCut: F7
     description: application
-    command: application' >$HOME/.config/k9s/aliases.yaml
+    command: application' >$HOME/.config/k9s/hotkeys.yaml
 
   k9s --version
 }
