@@ -252,32 +252,40 @@ alias kd=k9s"
   echo 'hotKeys:
   F1:
     shortCut: F1
-    description: pods
-    command: pods
+    description: ns
+    command: ns
   F2:
     shortCut: F2
-    description: deployments
-    command: deployments
+    description: pods
+    command: pods
   F3:
     shortCut: F3
-    description: service
-    command: service
+    description: deployments
+    command: deployments
   F4:
     shortCut: F4
-    description: ingress
-    command: ingress
+    description: service
+    command: service
   F5:
     shortCut: F5
-    description: secrets
-    command: secrets
+    description: ingress
+    command: ingress
   F6:
     shortCut: F6
-    description: configmaps
-    command: configmaps
+    description: secrets
+    command: secrets
   F7:
     shortCut: F7
+    description: configmaps
+    command: configmaps
+  F8:
+    shortCut: F8
     description: application
-    command: application' >$HOME/.config/k9s/hotkeys.yaml
+    command: application
+  F12:
+    shortCut: F12
+    description: context
+    command: context' >$HOME/.config/k9s/hotkeys.yaml
 
   k9s --version
 }
@@ -661,7 +669,7 @@ export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, 
 
 function miscelanious_install() {
   echo "installing miscelanious\e[0m"
-  apt install -y htop iotop net-tools tree lsd
+  apt install -y htop iotop net-tools tree lsd apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
 
   echo 'set completion-ignore-case On' >>/etc/inputrc
 
