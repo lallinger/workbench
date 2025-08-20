@@ -711,7 +711,7 @@ export HISTTIMEFORMAT="[%F %T] "
 export HISTFILE=~/.eternal_history_bash
 # Force prompt to write history after every command.
 ## http://superuser.com/questions/20900/bash-history-loss
-alias hist="history -a"
+alias hist="history -a && history -r"
 #PROMPT_COMMAND="history -a; $PROMPT_COMMAND"'
 
   add_to_profile rename 'function rename() {
