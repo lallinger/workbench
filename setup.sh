@@ -675,6 +675,17 @@ function bitwarden_install() {
   echo "installing bitwarden\e[0m"
   snap install bw
   snap refresh
+  wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v1.0.0/bws-x86_64-unknown-linux-gnu-1.0.0.zip
+  unzip bws-x86_64-unknown-linux-gnu-1.0.0.zip
+  rm bws-x86_64-unknown-linux-gnu-1.0.0.zip
+  mv bws /usr/local/bin/
+
+  bws completions bash >completion_bitwarden
+  mv -f completion_bitwarden $COMPLETION_FOLDER/bitwarden
+  # set BWS_ACCESS_TOKEN in ~/.secure_vars !
+  add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
+  export OPENAI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"openai-api-key\") | .value')
+  export PASSWORD=\$(bws secret list | yq e '.[] | select(.key == \"password\") | .value')"
 }
 
 function miscelanious_install() {
