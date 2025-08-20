@@ -229,7 +229,10 @@ function netshoot_install() {
   echo "\e[31minstalling netshoot\e[0m"
   $(find $HOME -iname krew -type f) index add netshoot https://github.com/nilic/kubectl-netshoot.git || echo index already added
   $(find $HOME -iname krew -type f) install netshoot/netshoot
-  add_to_profile netshoot 'alias netshoot="k netshoot run tmp"'
+  kubectl netshoot completion bash >completion_netshoot
+  mv -f completion_netshoot $COMPLETION_FOLDER/netshoot
+  add_to_profile netshoot "alias netshoot='k netshoot run tmp'
+source $COMPLETION_FOLDER/netshoot"
   kubectl plugin list | grep kubectl-netshoot
 }
 
@@ -654,6 +657,7 @@ git config --global core.editor nvim
 export EDITOR=nvim
 export VISUAL=nvim"
 }
+
 function chatgpt_install() {
   echo "installing chatgpt\e[0m"
   wget https://github.com/kardolus/chatgpt-cli/releases/latest/download/chatgpt-linux-amd64
@@ -665,6 +669,12 @@ function chatgpt_install() {
 export OPENAI_MODEL=gpt-5-nano
 export OPENAI_TRACK_TOKEN_USAGE=true
 export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'"
+}
+
+function bitwarden_install() {
+  echo "installing bitwarden\e[0m"
+  snap install bw
+  snap refresh
 }
 
 function miscelanious_install() {
@@ -760,6 +770,7 @@ install_tools() {
   virtctl_install
   neovim_install
   chatgpt_install
+  bitwarden_install
   miscelanious_install
 }
 
