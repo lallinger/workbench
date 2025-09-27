@@ -246,6 +246,8 @@ function k9s_install() {
   add_to_profile k9s "source $COMPLETION_FOLDER/k9s
 alias kd=k9s"
 
+  mkdir -p $HOME/.config/k9s
+
   echo 'k9s:
   liveViewAutoRefresh: true
   refreshRate: 1
@@ -316,7 +318,7 @@ function kubecolor_install() {
   add_to_profile kubecolor "alias kc=kubecolor
   alias kubectl=kubecolor
 complete -F __start_kubectl kubecolor"
-  /root/go/bin/kubecolor
+  $HOME/go/bin/kubecolor
 }
 
 function podman_install() {
@@ -465,7 +467,8 @@ function virtctl_install() {
 function neovim_install() {
   echo "\e[31minstalling neovim\e[0m"
 
-  apt install -y ruby-full fzf ripgrep fd-find lua5.4 nodejs liblua5.4-0 liblua5.4-dev
+  apt install -y ruby-full fzf ripgrep fd-find lua5.4 nodejs liblua5.4-0 liblua5.4-dev npm
+  npm install -g tree-sitter-cli
   gem install neovim
   curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
   chmod u+x nvim-linux-x86_64.appimage
@@ -490,7 +493,26 @@ function neovim_install() {
   rm -rf luarocks-3.12.2 luarocks-3.12.2.tar.gz
 
   echo 'require("config.lazy")
-vim.g.clipboard = "osc52"
+-- fix for windows terminal copy/paste timeout
+function no_paste(reg)
+    return function(lines)
+        -- Do nothing! We cant paste with OSC52
+    end
+end
+
+vim.g.clipboard = {
+    name = "OSC 52",
+    copy = {
+         ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+         ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+    },
+    paste = {
+        ["+"] = no_paste("+"), -- Pasting disabled
+        ["*"] = no_paste("*"), -- Pasting disabled
+    }
+}
+--vim.g.clipboard = "osc52"
+
 vim.cmd(":set listchars=eol:$,tab:>-,trail:~,extends:>,precedes:<,space:⋅")
 vim.cmd(":set nolist")' >$HOME/.config/nvim/init.lua
 
@@ -646,12 +668,6 @@ end, opts)" >$HOME/.config/nvim/lua/config/keymaps.lua
   end,
 }' >$HOME/.config/nvim/lua/plugins/lualine.lua
 
-  # open issue: https://github.com/LazyVim/LazyVim/issues/6039
-  echo 'return {
-  { "mason-org/mason.nvim", version = "^1.0.0" },
-  { "mason-org/mason-lspconfig.nvim", version = "^1.0.0" },
-}' >$HOME/.config/nvim/lua/plugins/mason-workaround.lua
-
   add_to_profile neovim "alias vim=nvim
 git config --global core.editor nvim
 export EDITOR=nvim
@@ -715,7 +731,7 @@ BLUE="\[$(tput setaf 6)\]"
 GREEN="\[$(tput setaf 34)\]"
 TIME=$CYAN'"'\T'"'
 USER_HOST=$MAGENTA'"'\u@\h'"'
-KUBECTL=$MAGENTA'"'"'$(kubectl config current-context)/$(kubectl config view --minify -o jsonpath='{..namespace}')'"'"'
+KUBECTL=$MAGENTA'"'"'$(kubectl config current-context 2> /dev/null)/$(kubectl config view --minify -o jsonpath='{..namespace}' 2> /dev/null)'"'"'
 CURRENT_PATH=$BLUE'"'\w'"'
 export PS1="$WHITE[$TIME$WHITE]$WHITE[$USER_HOST$WHITE]$WHITE[$KUBECTL$WHITE]$CURRENT_PATH$WHITE: $GREEN"'
 
