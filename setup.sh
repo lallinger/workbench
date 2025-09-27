@@ -719,6 +719,7 @@ ll="lsd -l"'
   add_to_profile git 'git config --global core.autocrlf false
 git config --global core.eol lf
 git config --global core.filemode false
+git config --global url.ssh://git@github.com/.insteadOf https://github.com/
 alias gitwip="git add . && git commit -m wip && git pull --rebase && git push"
 alias gitgud='"'"'_gitgud() { args="$@" && git add . && git commit -m "$args" && git pull --rebase && git push ;}; _gitgud'"'
 alias gg=gitgud
