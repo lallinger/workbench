@@ -19,7 +19,23 @@ add_to_profile() {
   source $_bashrc
 }
 
+function proxy() {
+  curl google.de || echo "proxy needed? use './setup.sh http://proxy-address'"
+  proxy_address=$1
+
+  if [ -n "$proxy_address" ]; then
+    echo using proxy $proxy_address
+    add_to_profile proxy "export https_proxy=$proxy_address
+export http_proxy=$proxy_address
+export HTTP_PROXY=$proxy_address
+export HTTPS_PROXY=$proxy_address"
+    echo "Acquire::http::Proxy \"$proxy_address\";
+Acquire::https::Proxy \"$proxy_address\";" >/etc/apt/apt.conf
+  fi
+}
+
 function prepare() {
+  proxy $1
   rm /etc/apt/apt.conf.d/docker-clean || echo "docker-clean not found => skipping delete" # enable shell completion for apt in ubuntu docker image
   add_to_profile xdg 'XDG_CONFIG_HOME="$HOME/.config"'
   apt update
@@ -478,11 +494,11 @@ function neovim_install() {
   git clone https://github.com/LazyVim/starter $HOME/.config/nvim
   rm -rf $HOME/.config/nvim/.git
 
-  wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip
-  unzip JetBrainsMono.zip -d fonts
-  mkdir -p $HOME/.local/share/fonts
-  mv -f fonts/*.ttf $HOME/.local/share/fonts
-  rm -rf fonts JetBrainsMono.zip
+  #wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip
+  #unzip JetBrainsMono.zip -d fonts
+  #mkdir -p $HOME/.local/share/fonts
+  #mv -f fonts/*.ttf $HOME/.local/share/fonts
+  #rm -rf fonts JetBrainsMono.zip
 
   wget https://luarocks.org/releases/luarocks-3.12.2.tar.gz
   tar zxpf luarocks-3.12.2.tar.gz
@@ -719,7 +735,8 @@ ll="lsd -l"'
   add_to_profile git 'git config --global core.autocrlf false
 git config --global core.eol lf
 git config --global core.filemode false
-git config --global url.ssh://git@github.com/.insteadOf https://github.com/
+# always use ssh
+# git config --global url.ssh://git@github.com/.insteadOf https://github.com/
 alias gitwip="git add . && git commit -m wip && git pull --rebase && git push"
 alias gitgud='"'"'_gitgud() { args="$@" && git add . && git commit -m "$args" && git pull --rebase && git push ;}; _gitgud'"'
 alias gg=gitgud
@@ -772,7 +789,7 @@ alias aupg="apt upgrade"'
 }
 
 install_tools() {
-  prepare
+  prepare $1
   terraform_install
   #az_install
   kustomize_install
@@ -803,4 +820,4 @@ install_tools() {
   miscelanious_install
 }
 
-install_tools
+install_tools $1
