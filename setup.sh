@@ -25,6 +25,11 @@ function proxy() {
 
   if [ -n "$proxy_address" ]; then
     echo using proxy $proxy_address
+    export https_proxy=$proxy_address
+    export http_proxy=$proxy_address
+    export HTTP_PROXY=$proxy_address
+    export HTTPS_PROXY=$proxy_address
+
     add_to_profile proxy "export https_proxy=$proxy_address
 export http_proxy=$proxy_address
 export HTTP_PROXY=$proxy_address
@@ -50,7 +55,8 @@ function prepare() {
 function terraform_install() {
   echo "\e[31minstalling terraform\e[0m"
   apt install -y gnupg software-properties-common
-  wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null
+  wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor >hashicorp-archive-keyring.gpg
+  mv hashicorp-archive-keyring.gpg /usr/share/keyrings/
   echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
   apt update
   apt install -y terraform
@@ -158,11 +164,6 @@ function kubectl_install() {
         words=("kubectl" "create" "ns" "${words[@]:1}")\
         cword=$(($cword+2))\
         prev="ns"\
-    elif [[ "${words[0]}" == "kng" ]] ; then\
-        __kubectl_debug  "called kng"\
-        words=("kubectl" "neat" "get" "${words[@]:1}")\
-        cword=$(($cword+2))\
-        prev="get"\
     else \
         __kubectl_debug "${words[0]} is not a known alias => not manipulating"\
         unmanipulated=un\
@@ -209,6 +210,20 @@ alias kng="kubectl neat get"
   kubectl version --client
 }
 
+function oc_install() {
+  echo "\e[31minstalling oc\e[0m"
+  wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
+  tar -xvf openshift-client-linux.tar.gz
+  mv oc /usr/local/bin/
+  rm README.md
+  rm kubectl
+  rm openshift-client-linux.tar.gz
+  oc completion bash >completion_oc
+  mv -f completion_oc $COMPLETION_FOLDER/oc
+  add_to_profile oc "source $COMPLETION_FOLDER/oc
+alias o=oc"
+}
+
 function krew_install() {
   echo "\e[31minstalling krew\e[0m"
   (
@@ -224,7 +239,7 @@ function krew_install() {
   add_to_profile krew 'export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin"'
   # completion not yet working: https://github.com/kubernetes-sigs/krew/issues/812
   export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin"
-  kubectl krew version
+  $(find $HOME -iname krew -type f) version
 }
 
 function kubens_install() {
@@ -355,6 +370,26 @@ function kubectl_neat_install() {
   echo "\e[31minstalling kubectl neat\e[0m"
   $(find $HOME -iname krew -type f) install neat
   kubectl plugin list | grep kubectl-neat
+  add_to_profile neat "alias kn='kubectl-neat'"
+}
+
+function istioctl_install() {
+  echo "\e[31minstalling istioctl\e[0m"
+  curl -L https://istio.io/downloadIstio | sh -
+  mv istio-*/bin/istioctl /usr/local/bin/
+  rm -rf istio-*
+  istioctl completion bash >completion_istioctl
+  mv -f completion_istioctl $COMPLETION_FOLDER/istioctl
+  add_to_profile istioctl "source $COMPLETION_FOLDER/istioctl"
+  istioctl version
+}
+
+function mc_install() {
+  echo "\e[31minstalling mc\e[0m"
+  wget https://dl.min.io/client/mc/release/linux-amd64/mc
+  chmod +x mc
+  mv mc /usr/local/bin/
+  mc --autocompletion
 }
 
 function yq_install() {
@@ -469,7 +504,7 @@ function argocd_install() {
 function virtctl_install() {
   echo "\e[31minstalling virtctl\e[0m"
 
-  $(find $HOME -iname krew -type f) install virt
+  $(find $HOME -iname k-rew -type f) install virt
   export VERSION=$(curl https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt)
   wget https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/virtctl-${VERSION}-linux-amd64
   chmod +x virtctl-${VERSION}-linux-amd64
@@ -484,7 +519,11 @@ function neovim_install() {
   echo "\e[31minstalling neovim\e[0m"
 
   apt install -y ruby-full fzf ripgrep fd-find lua5.4 nodejs liblua5.4-0 liblua5.4-dev npm
-  npm install -g tree-sitter-cli
+  if [ -n "$proxy_address" ]; then
+    npm config set proxy $http_proxy
+    npm config set https-proxy $http_proxy
+  fi
+  #npm install -g tree-sitter-cli
   gem install neovim
   curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
   chmod u+x nvim-linux-x86_64.appimage
@@ -723,7 +762,7 @@ export TF_VAR_password=\$PASSWORD"
 
 function miscelanious_install() {
   echo "installing miscelanious\e[0m"
-  apt install -y htop iotop net-tools tree lsd sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
+  apt install -y dos2unix htop iotop bind9-dnsutils net-tools tree lsd sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
 
   echo 'set completion-ignore-case On' >>/etc/inputrc
 
@@ -784,8 +823,11 @@ alias alu="apt list --upgradable"
 alias aupd="apt update"
 alias aupg="apt upgrade"'
 
-  add_to_profile kubectl "source ~/.kubectl_aliases"
+  echo '#!/usr/bin/bash
+cd /mnt/c/Users/$WIN_USER' >$HOME/.win_home
+  add_to_profile home "alias home='source ~/.win_home'"
 
+  add_to_profile kubectl "source ~/.kubectl_aliases"
 }
 
 install_tools() {
@@ -795,6 +837,7 @@ install_tools() {
   kustomize_install
   helm_install
   kubectl_install
+  oc_install
   krew_install
   kubens_install
   kubectx_install
@@ -804,6 +847,8 @@ install_tools() {
   kubecolor_install
   podman_install
   kubectl_neat_install
+  istioctl_install
+  mc_install
   yq_install
   ccat_install
   talosctl_install
@@ -814,7 +859,7 @@ install_tools() {
   operator_sdk_install
   argocd_install
   virtctl_install
-  neovim_install
+  neovim_install $1
   chatgpt_install
   bitwarden_install
   miscelanious_install
