@@ -355,13 +355,19 @@ complete -F __start_kubectl kubecolor"
 function podman_install() {
   echo "\e[31minstalling podman\e[0m"
   apt -y install podman
+  alias docker=podman
+  docker completion bash >completion_docker
+  mv -f completion_docker $COMPLETION_FOLDER/docker
+
   add_to_profile podman 'alias docker=podman
 function run-it() {
   docker run -v "${PWD}:/pwd" "$1" /bin/bash -c : || ( echo fallback to sh && docker run -it -v "${PWD}:/pwd" "$1" /bin/sh ) && docker run -it -v "${PWD}:/pwd" "$1" /bin/bash
 }
 export -f run-it
 alias rit=run-it
-alias dbt="docker build . -t"'
+alias dbt="docker build . -t"'"
+source $COMPLETION_FOLDER/docker
+complete -F __start_podman docker"
 
   podman --version
 }
@@ -371,6 +377,18 @@ function kubectl_neat_install() {
   $(find $HOME -iname krew -type f) install neat
   kubectl plugin list | grep kubectl-neat
   add_to_profile neat "alias kn='kubectl-neat'"
+}
+
+function kyverno_install() {
+  echo "\e[31minstalling kyverno\e[0m"
+  curl -LO https://github.com/kyverno/kyverno/releases/download/v1.12.0/kyverno-cli_v1.12.0_linux_x86_64.tar.gz
+  tar -xvf kyverno-cli_v1.12.0_linux_x86_64.tar.gz
+  mv kyverno /usr/local/bin/
+  rm -rf kyverno-cli_v1.12._linux_x86_64.tar.gz
+  kyverno completion bash >completion_kyverno
+  mv -f completion_kyverno $COMPLETION_FOLDER/kyverno
+  add_to_profile kyverno "source $COMPLETION_FOLDER/kyverno"
+  kyverno version
 }
 
 function istioctl_install() {
@@ -848,6 +866,7 @@ install_tools() {
   podman_install
   kubectl_neat_install
   istioctl_install
+  kyverno_install
   mc_install
   yq_install
   ccat_install
