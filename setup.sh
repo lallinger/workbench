@@ -381,10 +381,10 @@ function kubectl_neat_install() {
 
 function kyverno_install() {
   echo "\e[31minstalling kyverno\e[0m"
-  curl -LO https://github.com/kyverno/kyverno/releases/download/v1.12.0/kyverno-cli_v1.12.0_linux_x86_64.tar.gz
-  tar -xvf kyverno-cli_v1.12.0_linux_x86_64.tar.gz
+  wget https://github.com/kyverno/kyverno/releases/download/v1.16.1/kyverno-cli_v1.16.1_linux_x86_64.tar.gz
+  tar -xvf kyverno-cli_v1.16.1_linux_x86_64.tar.gz
   mv kyverno /usr/local/bin/
-  rm -rf kyverno-cli_v1.12._linux_x86_64.tar.gz
+  rm -rf kyverno-cli_v1.16.1_linux_x86_64.tar.gz LICENSE
   kyverno completion bash >completion_kyverno
   mv -f completion_kyverno $COMPLETION_FOLDER/kyverno
   add_to_profile kyverno "source $COMPLETION_FOLDER/kyverno"
