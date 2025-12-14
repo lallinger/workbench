@@ -1,7 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -e
 
+export USE_SUDO=
 export COMPLETION_FOLDER="/usr/share/bash-completion/completions"
 mkdir -p $COMPLETION_FOLDER
 _bashrc=$HOME/.bashrc
@@ -21,9 +22,8 @@ add_to_profile() {
 
 function proxy() {
   curl google.de || echo "proxy needed? use './setup.sh http://proxy-address'"
-  proxy_address=$1
 
-  if [ -n "$proxy_address" ]; then
+  if [ -n "$http_proxy" ]; then
     echo using proxy $proxy_address
     export https_proxy=$proxy_address
     export http_proxy=$proxy_address
@@ -40,27 +40,29 @@ Acquire::https::Proxy \"$proxy_address\";" >/etc/apt/apt.conf
 }
 
 function prepare() {
-  proxy $1
+  sudo && (echo using sudo && export USE_SUDO="sudo") || echo no sudo found, continuing without
+
+  proxy
   rm /etc/apt/apt.conf.d/docker-clean || echo "docker-clean not found => skipping delete" # enable shell completion for apt in ubuntu docker image
   add_to_profile xdg 'XDG_CONFIG_HOME="$HOME/.config"'
-  apt update
+  $USE_SUDO apt update
   export TZ=Europe/Berlin
-  echo $TZ >/etc/timezone
+  $USE_SUDO bash -c "echo $TZ >/etc/timezone"
   export DEBIAN_FRONTEND=noninteractive
-  apt install -y curl wget git tzdata bash-completion apt-utils jq
-  apt upgrade -y
+  $USE_SUDO apt install -y curl wget git tzdata bash-completion apt-utils jq
+  $USE_SUDO apt upgrade -y
   add_to_profile bash_completion 'source /etc/bash_completion'
 }
 
 function terraform_install() {
   echo "\e[31minstalling terraform\e[0m"
-  apt install -y gnupg software-properties-common
+  $USE_SUDO apt install -y gnupg software-properties-common
   wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor >hashicorp-archive-keyring.gpg
-  mv hashicorp-archive-keyring.gpg /usr/share/keyrings/
-  echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
-  apt update
-  apt install -y terraform
-  #terraform -install-autocomplete
+  $USE_SUDO mv hashicorp-archive-keyring.gpg /usr/share/keyrings/
+  echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | $USE_SUDO tee /etc/apt/sources.list.d/hashicorp.list
+  $USE_SUDO apt update
+  $USE_SUDO apt install -y terraform
+  terraform -install-autocomplete || echo probably already added terraform autoinstall
   add_to_profile terraform 'complete -C /usr/bin/terraform tf
 complete -C /usr/bin/terraform terraform
 alias tf=terraform
@@ -76,15 +78,14 @@ alias tfda="terraform destroy -auto-approve"'
 function az_install() {
   echo "\e[31minstalling az\e[0m"
   curl -sL https://aka.ms/InstallAzureCLIDeb | bash
-  az --version
 }
 
 function kustomize_install() {
   echo "\e[31minstalling kustomize\e[0m"
   curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -
-  mv -f kustomize /usr/local/bin/
+  $USE_SUDO mv -f kustomize /usr/local/bin/
   kustomize completion bash >completion_kustomize
-  mv -f completion_kustomize $COMPLETION_FOLDER/kustomize
+  $USE_SUDO mv -f completion_kustomize $COMPLETION_FOLDER/kustomize
   add_to_profile kustomize 'source'" $COMPLETION_FOLDER/kustomize"'
 alias touchk="touch kustomization.yaml && kustomize edit add resource *"'
   kustomize version
@@ -94,7 +95,7 @@ function helm_install() {
   echo "\e[31minstalling helm\e[0m"
   curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
   helm completion bash >completion_helm
-  mv -f completion_helm $COMPLETION_FOLDER/helm
+  $USE_SUDO mv -f completion_helm $COMPLETION_FOLDER/helm
   add_to_profile helm "source $COMPLETION_FOLDER/helm"
   helm version
 }
@@ -103,7 +104,7 @@ function kubectl_install() {
   echo "\e[31minstalling kubectl\e[0m"
   curl -LO https://dl.k8s.io/release/$(curl -LS https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
   chmod +x kubectl
-  mv -f kubectl /usr/local/bin
+  $USE_SUDO mv -f kubectl /usr/local/bin
   kubectl completion bash >completion_kubectl
 
   section=custom_kubectl_completion
@@ -177,7 +178,7 @@ function kubectl_install() {
   sed -i 's/__kubectl_debug "========= starting completion logic =========="//g' completion_kubectl
   sed -i "/#\/$section/a"'\
     __kubectl_debug "========= starting completion logic =========="' completion_kubectl
-  mv -f completion_kubectl $COMPLETION_FOLDER/kubectl
+  $USE_SUDO mv -f completion_kubectl $COMPLETION_FOLDER/kubectl
 
   echo "source $COMPLETION_FOLDER/kubectl"'
 alias k=kubectl
@@ -214,12 +215,12 @@ function oc_install() {
   echo "\e[31minstalling oc\e[0m"
   wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
   tar -xvf openshift-client-linux.tar.gz
-  mv oc /usr/local/bin/
+  $USE_SUDO mv oc /usr/local/bin/
   rm README.md
   rm kubectl
   rm openshift-client-linux.tar.gz
   oc completion bash >completion_oc
-  mv -f completion_oc $COMPLETION_FOLDER/oc
+  $USE_SUDO mv -f completion_oc $COMPLETION_FOLDER/oc
   add_to_profile oc "source $COMPLETION_FOLDER/oc
 alias o=oc"
 }
@@ -261,7 +262,7 @@ function netshoot_install() {
   $(find $HOME -iname krew -type f) index add netshoot https://github.com/nilic/kubectl-netshoot.git || echo index already added
   $(find $HOME -iname krew -type f) install netshoot/netshoot
   kubectl netshoot completion bash >completion_netshoot
-  mv -f completion_netshoot $COMPLETION_FOLDER/netshoot
+  $USE_SUDO mv -f completion_netshoot $COMPLETION_FOLDER/netshoot
   add_to_profile netshoot "alias netshoot='k netshoot run tmp'
 source $COMPLETION_FOLDER/netshoot"
   kubectl plugin list | grep kubectl-netshoot
@@ -270,10 +271,10 @@ source $COMPLETION_FOLDER/netshoot"
 function k9s_install() {
   echo "\e[31minstalling k9s\e[0m"
   wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb
-  apt install -y --fix-missing ./k9s_linux_amd64.deb
+  $USE_SUDO apt install -y --fix-missing ./k9s_linux_amd64.deb
   rm ./k9s_linux_amd64.deb
   k9s completion bash >completion_k9s
-  mv -f completion_k9s $COMPLETION_FOLDER/k9s
+  $USE_SUDO mv -f completion_k9s $COMPLETION_FOLDER/k9s
   add_to_profile k9s "source $COMPLETION_FOLDER/k9s
 alias kd=k9s"
 
@@ -331,12 +332,12 @@ function go_install() {
 
   if command -v go &>/dev/null; then
     echo "Found pre-existing Go version. removing..."
-    rm -rf /usr/local/go
+    $USE_SUDO rm -rf /usr/local/go
   fi
 
   GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | cut -d' ' -f3 | tr -d 'go')
   wget https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz -O go.tar.gz
-  rm -rf /usr/local/go && tar -C /usr/local -xzf go.tar.gz
+  $USE_SUDO rm -rf /usr/local/go && $USE_SUDO tar -C /usr/local -xzf go.tar.gz
   add_to_profile go 'export PATH="$PATH:/usr/local/go/bin:'$HOME'/go/bin"'
   rm go.tar.gz
   export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
@@ -354,10 +355,10 @@ complete -F __start_kubectl kubecolor"
 
 function podman_install() {
   echo "\e[31minstalling podman\e[0m"
-  apt -y install podman
-  alias docker=podman
-  docker completion bash >completion_docker
-  mv -f completion_docker $COMPLETION_FOLDER/docker
+  $USE_SUDO apt -y install podman
+  #alias docker=podman
+  #docker completion bash >completion_docker
+  #$USE_SUDO mv -f completion_docker $COMPLETION_FOLDER/docker
 
   add_to_profile podman 'alias docker=podman
 function run-it() {
@@ -383,10 +384,10 @@ function kyverno_install() {
   echo "\e[31minstalling kyverno\e[0m"
   wget https://github.com/kyverno/kyverno/releases/download/v1.16.1/kyverno-cli_v1.16.1_linux_x86_64.tar.gz
   tar -xvf kyverno-cli_v1.16.1_linux_x86_64.tar.gz
-  mv kyverno /usr/local/bin/
+  $USE_SUDO mv kyverno /usr/local/bin/
   rm -rf kyverno-cli_v1.16.1_linux_x86_64.tar.gz LICENSE
   kyverno completion bash >completion_kyverno
-  mv -f completion_kyverno $COMPLETION_FOLDER/kyverno
+  $USE_SUDO mv -f completion_kyverno $COMPLETION_FOLDER/kyverno
   add_to_profile kyverno "source $COMPLETION_FOLDER/kyverno"
   kyverno version
 }
@@ -394,28 +395,28 @@ function kyverno_install() {
 function istioctl_install() {
   echo "\e[31minstalling istioctl\e[0m"
   curl -L https://istio.io/downloadIstio | sh -
-  mv istio-*/bin/istioctl /usr/local/bin/
+  $USE_SUDO mv istio-*/bin/istioctl /usr/local/bin/
   rm -rf istio-*
   istioctl completion bash >completion_istioctl
-  mv -f completion_istioctl $COMPLETION_FOLDER/istioctl
+  $USE_SUDO mv -f completion_istioctl $COMPLETION_FOLDER/istioctl
   add_to_profile istioctl "source $COMPLETION_FOLDER/istioctl"
-  istioctl version
+  istioctl version --remote=false
 }
 
 function mc_install() {
   echo "\e[31minstalling mc\e[0m"
   wget https://dl.min.io/client/mc/release/linux-amd64/mc
   chmod +x mc
-  mv mc /usr/local/bin/
+  $USE_SUDO mv mc /usr/local/bin/
   mc --autocompletion
 }
 
 function yq_install() {
   echo "\e[31minstalling yq\e[0m"
-  wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
-  chmod +x /usr/local/bin/yq
+  $USE_SUDO wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+  $USE_SUDO chmod +x /usr/local/bin/yq
   yq completion bash >completion_yq
-  mv -f completion_yq $COMPLETION_FOLDER/yq
+  $USE_SUDO mv -f completion_yq $COMPLETION_FOLDER/yq
   add_to_profile yq "source $COMPLETION_FOLDER/yq"
   yq --version
 }
@@ -426,7 +427,7 @@ function ccat_install() {
   version=$(echo $vversion | sed 's/v//g')
   wget https://github.com/batmac/ccat/releases/download/$vversion/ccat-$version-linux-amd64.tar.gz -O ccat.tar.gz
   tar -xvf ccat.tar.gz
-  mv -f ccat /usr/local/bin
+  $USE_SUDO mv -f ccat /usr/local/bin
   rm ccat.tar.gz
   add_to_profile ccat "alias cat=ccat
 alias _cat=/usr/local/bin/cat"
@@ -438,7 +439,7 @@ function talosctl_install() {
   echo "\e[31minstalling talosctl\e[0m"
   curl -sL https://talos.dev/install | sh
   talosctl completion bash >completion_talosctl
-  mv -f completion_talosctl $COMPLETION_FOLDER/talosctl
+  $USE_SUDO mv -f completion_talosctl $COMPLETION_FOLDER/talosctl
   add_to_profile talosctl "source $COMPLETION_FOLDER/talosctl
 alias tctl=talosctl"
   talosctl version --client
@@ -446,30 +447,24 @@ alias tctl=talosctl"
 
 function python_install() {
   echo "\e[31minstalling python\e[0m"
-  apt install -y python3 python3-pip python-is-python3 python3-setuptools pip pipx
+  $USE_SUDO apt install -y python3 python3-pip python-is-python3 python3-setuptools pip pipx
   python --version
 }
 
 function fuck_install() {
   echo "\e[31minstalling fuck\e[0m"
-  pip install thefuck --break-system-packages
-  # broken package for python 3.12... https://github.com/nvbn/thefuck/issues/1491
-  python_version=$(python --version | sed 's/Python //g' | sed 's/\.[0-9]\+$//')
-  rm /usr/local/lib/python$python_version/dist-packages/thefuck/conf.py
-  rm /usr/local/lib/python$python_version/dist-packages/thefuck/types.py
-  wget https://raw.githubusercontent.com/DL909/thefuck/refs/heads/imp-bug-fix/thefuck/types.py -O /usr/local/lib/python$python_version/dist-packages/thefuck/types.py
-  wget https://raw.githubusercontent.com/nvbn/thefuck/f3af4c30da9bc8d2d168114f4d602fa03581eb62/thefuck/conf.py -O /usr/local/lib/python$python_version/dist-packages/thefuck/conf.py
+  $USE_SUDO apt install thefuck
   add_to_profile fuck 'alias f=fuck
 eval $(thefuck --alias fuck)
 export PATH=$PATH:/root/.local/bin'
 
   eval $(thefuck --alias fuck)
-  fuck --version
+  thefuck --version
 }
 
 function xxh_install() {
   echo "\e[31minstalling xxh\e[0m"
-  apt install -y sshpass
+  $USE_SUDO apt install -y sshpass
   pipx install xxh-xxh
   /root/.local/bin/xxh +I xxh-plugin-prerun-dotfiles
   /root/.local/bin/xxh +I xxh-shell-bash
@@ -501,72 +496,66 @@ function operator_sdk_install() {
   export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/latest/download/
   curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
   chmod +x operator-sdk_${OS}_${ARCH}
-  mv -f operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
+  $USE_SUDO mv -f operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
 
   operator-sdk completion bash >completion_operator_sdk
-  mv -f completion_operator_sdk $COMPLETION_FOLDER/operator-sdk
+  $USE_SUDO mv -f completion_operator_sdk $COMPLETION_FOLDER/operator-sdk
   add_to_profile operator_sdk "source $COMPLETION_FOLDER/operator-sdk"
 }
 
 function argocd_install() {
   echo "\e[31minstalling argocd\e[0m"
-  curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+  wget https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
   chmod +x argocd-linux-amd64
-  mv -f argocd-linux-amd64 /usr/local/bin/argocd
+  $USE_SUDO mv -f argocd-linux-amd64 /usr/local/bin/argocd
 
   argocd completion bash >completion_argocd
-  mv -f completion_argocd $COMPLETION_FOLDER/argocd
+  $USE_SUDO mv -f completion_argocd $COMPLETION_FOLDER/argocd
   add_to_profile argocd "source $COMPLETION_FOLDER/argocd"
 }
 
 function virtctl_install() {
   echo "\e[31minstalling virtctl\e[0m"
 
-  $(find $HOME -iname k-rew -type f) install virt
+  kubectl krew install virt
   export VERSION=$(curl https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt)
   wget https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/virtctl-${VERSION}-linux-amd64
   chmod +x virtctl-${VERSION}-linux-amd64
-  mv -f virtctl-${VERSION}-linux-amd64 /usr/local/bin/virtctl
+  $USE_SUDO mv -f virtctl-${VERSION}-linux-amd64 /usr/local/bin/virtctl
 
   virtctl completion bash >completion_virtctl
-  mv -f completion_virtctl $COMPLETION_FOLDER/virtctl
+  $USE_SUDO mv -f completion_virtctl $COMPLETION_FOLDER/virtctl
   add_to_profile virtctl "source $COMPLETION_FOLDER/virtctl"
 }
 
 function neovim_install() {
   echo "\e[31minstalling neovim\e[0m"
 
-  apt install -y ruby-full fzf ripgrep fd-find lua5.4 nodejs liblua5.4-0 liblua5.4-dev npm
-  if [ -n "$proxy_address" ]; then
+  $USE_SUDO apt install -y ruby-full fzf ripgrep fd-find lua5.4 nodejs liblua5.4-0 liblua5.4-dev npm
+  if [ -n "$http_proxy" ]; then
     npm config set proxy $http_proxy
     npm config set https-proxy $http_proxy
   fi
-  #npm install -g tree-sitter-cli
-  gem install neovim
+  $USE_SUDO npm install -g tree-sitter-cli
+  $USE_SUDO gem install neovim
   curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
   chmod u+x nvim-linux-x86_64.appimage
-  mv -f nvim-linux-x86_64.appimage /usr/local/bin/nvim
+  $USE_SUDO mv -f nvim-linux-x86_64.appimage /usr/local/bin/nvim
 
   rm -rf $HOME/.config/nvim
   git clone https://github.com/LazyVim/starter $HOME/.config/nvim
   rm -rf $HOME/.config/nvim/.git
 
-  #wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip
-  #unzip JetBrainsMono.zip -d fonts
-  #mkdir -p $HOME/.local/share/fonts
-  #mv -f fonts/*.ttf $HOME/.local/share/fonts
-  #rm -rf fonts JetBrainsMono.zip
-
   wget https://luarocks.org/releases/luarocks-3.12.2.tar.gz
   tar zxpf luarocks-3.12.2.tar.gz
   pushd luarocks-3.12.2
-  ./configure && make && make install
-  luarocks install luasocket
+  $USE_SUDO bash -c './configure && make && make install'
+  $USE_SUDO luarocks install luasocket
   popd
-  rm -rf luarocks-3.12.2 luarocks-3.12.2.tar.gz
+  $USE_SUDO rm -rf luarocks-3.12.2 luarocks-3.12.2.tar.gz
+  echo 'require("config.lazy")' >$HOME/.config/nvim/init.lua
 
-  echo 'require("config.lazy")
--- fix for windows terminal copy/paste timeout
+  wslinfo && (echo '-- fix for windows terminal copy/paste timeout
 function no_paste(reg)
     return function(lines)
         -- Do nothing! We cant paste with OSC52
@@ -583,11 +572,11 @@ vim.g.clipboard = {
         ["+"] = no_paste("+"), -- Pasting disabled
         ["*"] = no_paste("*"), -- Pasting disabled
     }
-}
---vim.g.clipboard = "osc52"
+}' >>$HOME/.config/nvim/init.lua) || (echo 'vim.g.clipboard = "osc52" --for ssh' >>$HOME/.config/nvim/init.lua)
 
-vim.cmd(":set listchars=eol:$,tab:>-,trail:~,extends:>,precedes:<,space:⋅")
-vim.cmd(":set nolist")' >$HOME/.config/nvim/init.lua
+  echo 'vim.cmd(":set listchars=eol:$,tab:>-,trail:~,extends:>,precedes:<,space:⋅")
+vim.cmd(":set nolist")
+vim.cmd(":set whichwrap+=<,>,[,]")' >>$HOME/.config/nvim/init.lua
 
   echo "local opts = { noremap = true}
 
@@ -751,13 +740,20 @@ function chatgpt_install() {
   echo "installing chatgpt\e[0m"
   wget https://github.com/kardolus/chatgpt-cli/releases/latest/download/chatgpt-linux-amd64
   chmod +x chatgpt-linux-amd64
-  mv chatgpt-linux-amd64 /usr/local/bin/chatgpt
+  $USE_SUDO mv chatgpt-linux-amd64 /usr/local/bin/chatgpt
   mkdir -p $HOME/.chatgpt-cli
 
-  add_to_profile chatgpt "alias c=chatgpt
+  chatgpt completion bash >completion_chatgpt
+  $USE_SUDO mv -f completion_chatgpt $COMPLETION_FOLDER/chatgpt
+
+  # api key retreived using bitwarden!
+  add_to_profile chatgpt "source $COMPLETION_FOLDER/chatgpt
+alias c=chatgpt
+complete -C /usr/local/bin/chatgpt c
 export OPENAI_MODEL=gpt-5-nano
 export OPENAI_TRACK_TOKEN_USAGE=true
 export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'"
+
 }
 
 function bitwarden_install() {
@@ -767,10 +763,10 @@ function bitwarden_install() {
   wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v1.0.0/bws-x86_64-unknown-linux-gnu-1.0.0.zip
   unzip bws-x86_64-unknown-linux-gnu-1.0.0.zip
   rm bws-x86_64-unknown-linux-gnu-1.0.0.zip
-  mv bws /usr/local/bin/
+  $USE_SUDO mv bws /usr/local/bin/
 
   bws completions bash >completion_bitwarden
-  mv -f completion_bitwarden $COMPLETION_FOLDER/bitwarden
+  $USE_SUDO mv -f completion_bitwarden $COMPLETION_FOLDER/bitwarden
   touch $HOME/.secure_vars
   # set BWS_ACCESS_TOKEN in ~/.secure_vars !
   add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
@@ -781,11 +777,212 @@ export TF_VAR_password=\$PASSWORD
 export TF_VAR_bitwarden_access_token=\$BWS_ACCESS_TOKEN"
 }
 
+function linux_desktop_install() {
+  echo
+  if systemctl is-enabled display-manager >/dev/null 2>&1; then
+    echo "Display manager enabled (GUI expected)"
+  else
+    echo "No enabled display manager"
+    return 0
+  fi
+
+  $USE_SUDO apt install xfce4-settings thunar brave-browser terminator
+  xdg-mime default thunar.desktop inode/directory application/x-gnome-saved-search
+  echo '[Default Applications]
+text/html=brave-browser.desktop
+x-scheme-handler/http=xfce4-web-browser.desktop
+x-scheme-handler/https=xfce4-web-browser.desktop
+x-scheme-handler/about=brave-browser.desktop
+x-scheme-handler/unknown=brave-browser.desktop
+inode/directory=thunar.desktop
+application/x-gnome-saved-search=thunar.desktop
+application/x-csh=userapp-nvim-0XR7G3.desktop
+application/x-shellscript=userapp-nvim-0XR7G3.desktop
+text/tcl=userapp-nvim-0XR7G3.desktop
+text/x-c++hdr=userapp-nvim-0XR7G3.desktop
+text/x-c++src=userapp-nvim-0XR7G3.desktop
+text/x-chdr=userapp-nvim-0XR7G3.desktop
+text/x-csharp=userapp-nvim-0XR7G3.desktop
+text/x-csrc=userapp-nvim-0XR7G3.desktop
+text/x-dsrc=userapp-nvim-0XR7G3.desktop
+text/x-gradle=userapp-nvim-0XR7G3.desktop
+text/x-groovy=userapp-nvim-0XR7G3.desktop
+text/x-java=userapp-nvim-0XR7G3.desktop
+text/x-makefile=userapp-nvim-0XR7G3.desktop
+text/x-moc=userapp-nvim-0XR7G3.desktop
+text/x-mof=userapp-nvim-0XR7G3.desktop
+text/x-objc++src=userapp-nvim-0XR7G3.desktop
+text/x-objcsrc=userapp-nvim-0XR7G3.desktop
+text/x-ooc=userapp-nvim-0XR7G3.desktop
+text/x-opencl-src=userapp-nvim-0XR7G3.desktop
+text/x-pascal=userapp-nvim-0XR7G3.desktop
+text/x-tex=userapp-nvim-0XR7G3.desktop
+text/x-vala=userapp-nvim-0XR7G3.desktop
+application/geo+json=brave-browser.desktop
+application/jrd+json=brave-browser.desktop
+application/json=brave-browser.desktop
+application/json-patch+json=brave-browser.desktop
+application/ld+json=brave-browser.desktop
+application/schema+json=brave-browser.desktop
+audio/ogg=brave-browser.desktop
+application/x-ipynb+json=brave-browser.desktop
+application/x-gerber-job=brave-browser.desktop
+application/x-xpinstall=brave-browser.desktop
+audio/flac=brave-browser.desktop
+audio/webm=brave-browser.desktop
+audio/x-flac+ogg=brave-browser.desktop
+audio/x-opus+ogg=brave-browser.desktop
+audio/x-speex+ogg=brave-browser.desktop
+audio/x-vorbis+ogg=brave-browser.desktop
+image/avif=brave-browser.desktop
+model/gltf+json=brave-browser.desktop
+video/ogg=brave-browser.desktop
+video/webm=brave-browser.desktop
+video/x-ogm+ogg=brave-browser.desktop
+video/x-theora+ogg=brave-browser.desktop
+application/appx=thunar.desktop
+application/appxbundle=thunar.desktop
+application/java-archive=thunar.desktop
+application/ovf=thunar.desktop
+application/vnd.apple.numbers=thunar.desktop
+application/vnd.apple.pages=thunar.desktop
+application/vnd.apple.keynote=thunar.desktop
+application/vnd.android.package-archive=thunar.desktop
+application/vnd.apple.pkpass=thunar.desktop
+application/vnd.google-earth.kmz=thunar.desktop
+application/vnd.ms-officetheme=thunar.desktop
+application/vnd.ms-visio.stencil.main+xml=thunar.desktop
+application/vnd.ms-visio.template.main+xml=thunar.desktop
+application/x-7z-compressed=thunar.desktop
+application/x-bzip2=thunar.desktop
+application/x-bzip2-compressed-tar=thunar.desktop
+application/x-compress=thunar.desktop
+application/x-compressed-tar=thunar.desktop
+application/x-gz-font-linux-psf=thunar.desktop
+application/x-lzip=thunar.desktop
+application/x-lzip-compressed-tar=thunar.desktop
+application/x-tar=thunar.desktop
+application/x-tarz=thunar.desktop
+application/x-xar=thunar.desktop
+application/x-xz=thunar.desktop
+application/x-xz-compressed-tar=thunar.desktop
+application/x-zip-compressed-fb2=thunar.desktop
+application/x-zstd-compressed-tar=thunar.desktop
+application/zip=thunar.desktop
+application/epub+zip=thunar.desktop
+application/gzip=thunar.desktop
+x-scheme-handler/http=xfce4-web-browser.desktop;
+x-scheme-handler/https=xfce4-web-browser.desktop;
+application/x-csh=userapp-nvim-0XR7G3.desktop;
+application/x-shellscript=userapp-nvim-0XR7G3.desktop;
+text/tcl=userapp-nvim-0XR7G3.desktop;
+text/x-c++hdr=userapp-nvim-0XR7G3.desktop;
+text/x-c++src=userapp-nvim-0XR7G3.desktop;
+text/x-chdr=userapp-nvim-0XR7G3.desktop;
+text/x-csharp=userapp-nvim-0XR7G3.desktop;
+text/x-csrc=userapp-nvim-0XR7G3.desktop;
+text/x-dsrc=org.gnome.TextEditor.desktop;userapp-nvim-0XR7G3.desktop;
+text/x-gradle=vim.desktop;userapp-nvim-0XR7G3.desktop;
+text/x-groovy=vim.desktop;userapp-nvim-0XR7G3.desktop;
+text/x-java=userapp-nvim-0XR7G3.desktop;
+text/x-makefile=userapp-nvim-0XR7G3.desktop;
+text/x-moc=userapp-nvim-0XR7G3.desktop;
+text/x-mof=vim.desktop;userapp-nvim-0XR7G3.desktop;
+text/x-objc++src=vim.desktop;userapp-nvim-0XR7G3.desktop;
+text/x-objcsrc=vim.desktop;userapp-nvim-0XR7G3.desktop;
+text/x-ooc=vim.desktop;userapp-nvim-0XR7G3.desktop;
+text/x-opencl-src=vim.desktop;userapp-nvim-0XR7G3.desktop;
+text/x-pascal=userapp-nvim-0XR7G3.desktop;
+text/x-tex=userapp-nvim-0XR7G3.desktop;
+text/x-vala=vim.desktop;userapp-nvim-0XR7G3.desktop;
+application/geo+json=brave-browser.desktop;
+application/jrd+json=brave-browser.desktop;
+application/json=brave-browser.desktop;
+application/json-patch+json=org.gnome.TextEditor.desktop;brave-browser.desktop;
+application/ld+json=firefox_firefox.desktop;brave-browser.desktop;
+application/schema+json=firefox_firefox.desktop;brave-browser.desktop;
+audio/ogg=brave-browser.desktop;
+application/x-ipynb+json=firefox_firefox.desktop;brave-browser.desktop;
+application/x-gerber-job=firefox_firefox.desktop;brave-browser.desktop;
+application/x-xpinstall=brave-browser.desktop;
+audio/flac=brave-browser.desktop;
+audio/webm=brave-browser.desktop;
+audio/x-flac+ogg=firefox_firefox.desktop;brave-browser.desktop;
+audio/x-opus+ogg=firefox_firefox.desktop;brave-browser.desktop;
+audio/x-speex+ogg=firefox_firefox.desktop;brave-browser.desktop;
+audio/x-vorbis+ogg=firefox_firefox.desktop;brave-browser.desktop;
+image/avif=brave-browser.desktop;
+model/gltf+json=firefox_firefox.desktop;brave-browser.desktop;
+video/ogg=brave-browser.desktop;
+video/webm=brave-browser.desktop;
+video/x-ogm+ogg=firefox_firefox.desktop;brave-browser.desktop;
+video/x-theora+ogg=firefox_firefox.desktop;brave-browser.desktop;
+application/appx=thunar.desktop;
+application/appxbundle=thunar.desktop;
+application/java-archive=thunar.desktop;
+application/ovf=thunar.desktop;
+application/vnd.apple.numbers=thunar.desktop;
+application/vnd.apple.pages=thunar.desktop;
+application/vnd.apple.keynote=thunar.desktop;
+application/vnd.android.package-archive=org.gnome.Nautilus.desktop;thunar.desktop;
+application/vnd.apple.pkpass=thunar.desktop;
+application/vnd.google-earth.kmz=thunar.desktop;
+application/vnd.ms-officetheme=thunar.desktop;
+application/vnd.ms-visio.stencil.main+xml=thunar.desktop;
+application/vnd.ms-visio.template.main+xml=thunar.desktop;
+application/x-7z-compressed=thunar.desktop;
+application/x-bzip2=thunar.desktop;
+application/x-bzip2-compressed-tar=thunar.desktop;
+application/x-compress=thunar.desktop;
+application/x-compressed-tar=thunar.desktop;
+application/x-gz-font-linux-psf=thunar.desktop;
+application/x-lzip=thunar.desktop;
+application/x-lzip-compressed-tar=thunar.desktop;
+application/x-tar=thunar.desktop;
+application/x-tarz=thunar.desktop;
+application/x-xar=thunar.desktop;
+application/x-xz=thunar.desktop;
+application/x-xz-compressed-tar=thunar.desktop;
+application/x-zip-compressed-fb2=thunar.desktop;
+application/x-zstd-compressed-tar=thunar.desktop;
+application/zip=thunar.desktop;
+application/epub+zip=org.gnome.Nautilus.desktop;thunar.desktop;
+application/gzip=thunar.desktop;' >$HOME/.config/mimeapps.list
+
+  cat $HOME/.local/share/fonts/JetBrainsMonoNerdFont-Regular.ttf >/dev/null || (wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mkdir -p $HOME/.local/share/fonts && mv -f fonts/*.ttf $HOME/.local/share/fonts && rm -rf fonts JetBrainsMono.zip)
+
+  echo '[global_config]
+[keybindings]
+  split_auto = <Primary>t
+  close_term = <Primary>w
+  copy = <Primary>c
+  paste = <Primary>v
+[profiles]
+  [[default]]
+    font = JetBrainsMono Nerd Font 12
+    foreground_color = "#ffffff"
+    scrollback_infinite = True
+    palette = "#000000:#aa0000:#00aa00:#aa5500:#0000aa:#aa00aa:#00aaaa:#aaaaaa:#555555:#ff5555:#55ff55:#ffff55:#5555ff:#ff55ff:#55ffff:#ffffff"
+    use_system_font = False
+[layouts]
+  [[default]]
+    [[[window0]]]
+      type = Window
+      parent = ""
+    [[[child1]]]
+      type = Terminal
+      parent = window0
+      profile = default
+[plugins]' >$HOME/.config/terminator/config
+
+  sed -i 's/vim\.g\.clipboard = "osc52" --for ssh/vim\.api\.nvim_set_option\("clipboard", "unnamed"\) --for desktop linux/g' $HOME/.config/nvim/init.lua
+}
+
 function miscelanious_install() {
   echo "installing miscelanious\e[0m"
-  apt install -y dos2unix htop iotop bind9-dnsutils net-tools tree lsd sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
+  $USE_SUDO apt install -y dos2unix htop iotop bind9-dnsutils net-tools tree lsd sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
 
-  echo 'set completion-ignore-case On' >>/etc/inputrc
+  $USE_SUDO bash -c "echo 'set completion-ignore-case On' >>/etc/inputrc"
 
   add_to_profile lsd 'alias ls=lsd
 ll="lsd -l"'
@@ -850,7 +1047,9 @@ cd /mnt/c/Users/$WIN_USER' >$HOME/.win_home
 }
 
 install_tools() {
-  prepare $1
+  prepare
+  neovim_install
+  linux_desktop_install
   terraform_install
   #az_install
   kustomize_install
@@ -873,16 +1072,15 @@ install_tools() {
   ccat_install
   talosctl_install
   python_install
-  fuck_install
+  #fuck_install
   #xxh_install
   speedtest_install
   operator_sdk_install
   argocd_install
   virtctl_install
-  neovim_install $1
   chatgpt_install
   bitwarden_install
   miscelanious_install
 }
 
-install_tools $1
+install_tools
