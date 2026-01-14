@@ -782,7 +782,7 @@ function bitwarden_install() {
   # set BWS_ACCESS_TOKEN in ~/.secure_vars !
   add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
 source ~/.secure_vars
-export GEMINI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"GEMINI-api-key\") | .value')
+export GEMINI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"gemini-api-key\") | .value')
 export OPENAI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"openai-api-key\") | .value')
 export PASSWORD=\$(bws secret list | yq e '.[] | select(.key == \"password\") | .value')
 export TF_VAR_password=\$PASSWORD
