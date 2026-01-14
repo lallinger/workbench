@@ -40,7 +40,7 @@ Acquire::https::Proxy \"$proxy_address\";" >/etc/apt/apt.conf
 }
 
 function prepare() {
-  sudo && (echo using sudo && export USE_SUDO="sudo") || echo no sudo found, continuing without
+  sudo -v && (echo using sudo && export USE_SUDO="sudo") || echo no sudo found, continuing without
 
   proxy
   rm /etc/apt/apt.conf.d/docker-clean || echo "docker-clean not found => skipping delete" # enable shell completion for apt in ubuntu docker image
@@ -271,7 +271,8 @@ source $COMPLETION_FOLDER/netshoot"
 function k9s_install() {
   echo "\e[31minstalling k9s\e[0m"
   wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb
-  $USE_SUDO apt install -y --fix-missing ./k9s_linux_amd64.deb
+  cp k9s_linux_amd64.deb /tmp/
+  $USE_SUDO apt install -y --fix-missing /tmp/k9s_linux_amd64.deb
   rm ./k9s_linux_amd64.deb
   k9s completion bash >completion_k9s
   $USE_SUDO mv -f completion_k9s $COMPLETION_FOLDER/k9s
@@ -324,7 +325,7 @@ alias kd=k9s"
     description: context
     command: context' >$HOME/.config/k9s/hotkeys.yaml
 
-  k9s --version
+  k9s version
 }
 
 function go_install() {
@@ -536,6 +537,8 @@ function neovim_install() {
     npm config set proxy $http_proxy
     npm config set https-proxy $http_proxy
   fi
+  $USE_SUDO npm install -g n
+  $USE_SUDO n lts
   $USE_SUDO npm install -g tree-sitter-cli
   $USE_SUDO gem install neovim
   curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
@@ -753,7 +756,15 @@ complete -C /usr/local/bin/chatgpt c
 export OPENAI_MODEL=gpt-5-nano
 export OPENAI_TRACK_TOKEN_USAGE=true
 export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'"
+}
 
+function gemini_install() {
+  echo "installing gemini\e[0m"
+  $USE_SUDO npm install -g @google/gemini-cli
+
+  # api key retreived using bitwarden!
+  add_to_profile gemini 'alias g=gemini
+  alias gi="gemini -i"'
 }
 
 function bitwarden_install() {
@@ -771,6 +782,7 @@ function bitwarden_install() {
   # set BWS_ACCESS_TOKEN in ~/.secure_vars !
   add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
 source ~/.secure_vars
+export GEMINI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"GEMINI-api-key\") | .value')
 export OPENAI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"openai-api-key\") | .value')
 export PASSWORD=\$(bws secret list | yq e '.[] | select(.key == \"password\") | .value')
 export TF_VAR_password=\$PASSWORD
@@ -1079,8 +1091,10 @@ install_tools() {
   argocd_install
   virtctl_install
   chatgpt_install
+  gemini_install
   bitwarden_install
   miscelanious_install
 }
 
 install_tools
+echo setup.sh finished successfully
