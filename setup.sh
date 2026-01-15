@@ -40,7 +40,7 @@ Acquire::https::Proxy \"$proxy_address\";" >/etc/apt/apt.conf
 }
 
 function prepare() {
-  sudo -v && (echo using sudo && export USE_SUDO="sudo") || echo no sudo found, continuing without
+  sudo -v && export USE_SUDO="sudo" || echo no sudo found, continuing without
 
   proxy
   rm /etc/apt/apt.conf.d/docker-clean || echo "docker-clean not found => skipping delete" # enable shell completion for apt in ubuntu docker image
@@ -271,7 +271,7 @@ source $COMPLETION_FOLDER/netshoot"
 function k9s_install() {
   echo "\e[31minstalling k9s\e[0m"
   wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb
-  cp k9s_linux_amd64.deb /tmp/
+  $USE_SUDO cp k9s_linux_amd64.deb /tmp/
   $USE_SUDO apt install -y --fix-missing /tmp/k9s_linux_amd64.deb
   rm ./k9s_linux_amd64.deb
   k9s completion bash >completion_k9s
@@ -354,14 +354,14 @@ complete -F __start_kubectl kubecolor"
   $HOME/go/bin/kubecolor
 }
 
-function podman_install() {
-  echo "\e[31minstalling podman\e[0m"
-  $USE_SUDO apt -y install podman
+function docker_install() {
+  echo "\e[31minstalling docker\e[0m"
+  $USE_SUDO apt -y install docker.io
   #alias docker=podman
-  #docker completion bash >completion_docker
-  #$USE_SUDO mv -f completion_docker $COMPLETION_FOLDER/docker
+  docker completion bash >completion_docker
+  $USE_SUDO mv -f completion_docker $COMPLETION_FOLDER/docker
 
-  add_to_profile podman 'alias docker=podman
+  add_to_profile docker '#alias docker=podman
 function run-it() {
   docker run -v "${PWD}:/pwd" "$1" /bin/bash -c : || ( echo fallback to sh && docker run -it -v "${PWD}:/pwd" "$1" /bin/sh ) && docker run -it -v "${PWD}:/pwd" "$1" /bin/bash
 }
@@ -369,9 +369,11 @@ export -f run-it
 alias rit=run-it
 alias dbt="docker build . -t"'"
 source $COMPLETION_FOLDER/docker
-complete -F __start_podman docker"
+#complete -F __start_podman docker
+complete -F __start_docker docker"
 
-  podman --version
+  #podman --version
+  docker --version
 }
 
 function kubectl_neat_install() {
@@ -767,10 +769,21 @@ function gemini_install() {
   alias gi="gemini -i"'
 }
 
+function vault_install() {
+  echo "installing vault\e[0m"
+
+  wget -O - https://apt.releases.hashicorp.com/gpg | $USE_SUDO gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | $USE_SUDO tee /etc/apt/sources.list.d/hashicorp.list
+  $USE_SUDO apt update
+  $USE_SUDO apt install vault
+  vault -autocomplete-install || echo vault autocomplete already installed
+  vault version
+}
+
 function bitwarden_install() {
   echo "installing bitwarden\e[0m"
-  snap install bw
-  snap refresh
+  $USE_SUDO snap install bw
+  $USE_SUDO snap refresh
   wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v1.0.0/bws-x86_64-unknown-linux-gnu-1.0.0.zip
   unzip bws-x86_64-unknown-linux-gnu-1.0.0.zip
   rm bws-x86_64-unknown-linux-gnu-1.0.0.zip
@@ -1075,7 +1088,7 @@ install_tools() {
   k9s_install
   go_install
   kubecolor_install
-  podman_install
+  docker_install
   kubectl_neat_install
   istioctl_install
   kyverno_install
@@ -1092,6 +1105,7 @@ install_tools() {
   virtctl_install
   chatgpt_install
   gemini_install
+  vault_install
   bitwarden_install
   miscelanious_install
 }
