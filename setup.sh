@@ -560,7 +560,7 @@ function neovim_install() {
   $USE_SUDO rm -rf luarocks-3.12.2 luarocks-3.12.2.tar.gz
   echo 'require("config.lazy")' >$HOME/.config/nvim/init.lua
 
-  wslinfo && (echo '-- fix for windows terminal copy/paste timeout
+  wslinfo --version && (echo '-- fix for windows terminal copy/paste timeout
 function no_paste(reg)
     return function(lines)
         -- Do nothing! We cant paste with OSC52
@@ -772,6 +772,7 @@ function gemini_install() {
 function vault_install() {
   echo "installing vault\e[0m"
 
+  $USE_SUDO rm -f /usr/share/keyrings/hashicorp-archive-keyring.gpg
   wget -O - https://apt.releases.hashicorp.com/gpg | $USE_SUDO gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | $USE_SUDO tee /etc/apt/sources.list.d/hashicorp.list
   $USE_SUDO apt update
