@@ -755,7 +755,7 @@ function chatgpt_install() {
   add_to_profile chatgpt "source $COMPLETION_FOLDER/chatgpt
 alias c=chatgpt
 complete -C /usr/local/bin/chatgpt c
-export OPENAI_MODEL=gpt-5-nano
+export OPENAI_MODEL=gpt-5-mini
 export OPENAI_TRACK_TOKEN_USAGE=true
 export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'"
 }
