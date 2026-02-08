@@ -411,6 +411,7 @@ function mc_install() {
   wget https://dl.min.io/client/mc/release/linux-amd64/mc
   chmod +x mc
   $USE_SUDO mv mc /usr/local/bin/
+  export SHELL=/bin/bash # ensure shell for docker
   mc --autocompletion
 }
 
@@ -764,6 +765,21 @@ function gemini_install() {
   echo "installing gemini\e[0m"
   $USE_SUDO npm install -g @google/gemini-cli
 
+  mkdir -p $HOME/.gemini
+  echo '{
+  "general": {
+    "vimMode": true,
+    "preferredEditor": "vim",
+    "previewFeatures": true,
+    "sessionRetention": {
+      "enabled": true,
+      "maxAge": "30d"
+    }
+  },
+  "privacy": {
+    "usageStatisticsEnabled": false
+  }
+}' >$HOME/.gemini/settings.json
   # api key retreived using bitwarden!
   add_to_profile gemini 'alias g=gemini
   alias gi="gemini -i"'
@@ -778,11 +794,12 @@ function vault_install() {
   $USE_SUDO apt update
   $USE_SUDO apt install vault
   vault -autocomplete-install || echo vault autocomplete already installed
-  vault version
+  vault version || echo error installing vault
 }
 
 function bitwarden_install() {
   echo "installing bitwarden\e[0m"
+  snap version || echo snap not found, skipping && return
   $USE_SUDO snap install bw
   $USE_SUDO snap refresh
   wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v1.0.0/bws-x86_64-unknown-linux-gnu-1.0.0.zip

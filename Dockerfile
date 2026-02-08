@@ -5,4 +5,4 @@ WORKDIR /root
 COPY setup.sh .
 RUN ./setup.sh
 
-VOLUME [ "/var/run/docker.sock" ]
+# VOLUME [ "/var/run/docker.sock" ]
