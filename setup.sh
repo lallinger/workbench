@@ -71,7 +71,10 @@ alias tfp="terraform plan"
 alias tfa="terraform apply"
 alias tfaa="terraform apply -auto-approve"
 alias tfd="terraform destroy"
-alias tfda="terraform destroy -auto-approve"'
+alias tfda="terraform destroy -auto-approve"'"
+export PASSWORD=\$(bws secret list | yq e '.[] | select(.key == \"password\") | .value')
+export TF_VAR_password=\$PASSWORD
+export TF_VAR_bitwarden_access_token=\$BWS_ACCESS_TOKEN"
   terraform --version
 }
 
@@ -752,13 +755,13 @@ function chatgpt_install() {
   chatgpt completion bash >completion_chatgpt
   $USE_SUDO mv -f completion_chatgpt $COMPLETION_FOLDER/chatgpt
 
-  # api key retreived using bitwarden!
   add_to_profile chatgpt "source $COMPLETION_FOLDER/chatgpt
 alias c=chatgpt
 complete -C /usr/local/bin/chatgpt c
 export OPENAI_MODEL=gpt-5-mini
 export OPENAI_TRACK_TOKEN_USAGE=true
-export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'"
+export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'
+export OPENAI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"openai-api-key\") | .value')"
 }
 
 function gemini_install() {
@@ -780,9 +783,9 @@ function gemini_install() {
     "usageStatisticsEnabled": false
   }
 }' >$HOME/.gemini/settings.json
-  # api key retreived using bitwarden!
   add_to_profile gemini 'alias g=gemini
-  alias gi="gemini -i"'
+alias gi="gemini -i"'"
+export GEMINI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"gemini-api-key\") | .value')"
 }
 
 function vault_install() {
@@ -810,14 +813,10 @@ function bitwarden_install() {
   bws completions bash >completion_bitwarden
   $USE_SUDO mv -f completion_bitwarden $COMPLETION_FOLDER/bitwarden
   touch $HOME/.secure_vars
+  source $HOME/.secure_vars
   # set BWS_ACCESS_TOKEN in ~/.secure_vars !
   add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
-source ~/.secure_vars
-export GEMINI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"gemini-api-key\") | .value')
-export OPENAI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"openai-api-key\") | .value')
-export PASSWORD=\$(bws secret list | yq e '.[] | select(.key == \"password\") | .value')
-export TF_VAR_password=\$PASSWORD
-export TF_VAR_bitwarden_access_token=\$BWS_ACCESS_TOKEN"
+source ~/.secure_vars"
 }
 
 function linux_desktop_install() {
