@@ -87,7 +87,7 @@ function kustomize_install() {
   kustomize completion bash >completion_kustomize
   $USE_SUDO mv -f completion_kustomize $COMPLETION_FOLDER/kustomize
   add_to_profile kustomize 'source'" $COMPLETION_FOLDER/kustomize"'
-alias touchk="touch kustomization.yaml && kustomize edit add resource *"'
+alias touchk="touch kustomization.yaml && kustomize edit add resource *.yaml && kustomize edit add resource */"'
   kustomize version
 }
 
@@ -1023,9 +1023,15 @@ application/gzip=thunar.desktop;' >$HOME/.config/mimeapps.list
 
 function miscelanious_install() {
   echo "installing miscelanious\e[0m"
-  $USE_SUDO apt install -y duf gdu dos2unix htop iotop bind9-dnsutils net-tools tree lsd sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
+  $USE_SUDO apt install -y duf gdu dos2unix zoxide htop iotop bind9-dnsutils net-tools tree lsd sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
 
   $USE_SUDO bash -c "echo 'set completion-ignore-case On' >>/etc/inputrc"
+
+  zoxide init bash >completion_zoxide
+  $USE_SUDO mv -f completion_zoxide $COMPLETION_FOLDER/zoxide
+
+  add_to_profile zoxide "source $COMPLETION_FOLDER/zoxide
+alias cd=z"
 
   add_to_profile gdu 'alias du="gdu -d 1"'
 
@@ -1102,7 +1108,7 @@ install_tools() {
   kustomize_install
   helm_install
   kubectl_install
-  oc_install
+  #oc_install
   krew_install
   kubens_install
   kubectx_install
