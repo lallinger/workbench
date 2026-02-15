@@ -86,8 +86,8 @@ function kustomize_install() {
   $USE_SUDO mv -f kustomize /usr/local/bin/
   kustomize completion bash >completion_kustomize
   $USE_SUDO mv -f completion_kustomize $COMPLETION_FOLDER/kustomize
-  add_to_profile kustomize 'source'" $COMPLETION_FOLDER/kustomize"'
-alias touchk="touch kustomization.yaml && kustomize edit add resource *.yaml && kustomize edit add resource */"'
+  add_to_profile kustomize 'source'" $COMPLETION_FOLDER/kustomize"' 
+alias touchk="touch kustomization.yaml && (kustomize edit remove resource \$(yq '"'.resources[]'"' kustomization.yaml) 2> /dev/null || \:) && kustomize edit add resource *.yaml && kustomize edit add resource */ 2>/dev/null || \:"'
   kustomize version
 }
 
