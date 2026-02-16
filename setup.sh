@@ -64,6 +64,7 @@ function terraform_install() {
   $USE_SUDO apt install -y terraform
   terraform -install-autocomplete || echo probably already added terraform autoinstall
   add_to_profile terraform 'complete -C /usr/bin/terraform tf
+
 complete -C /usr/bin/terraform terraform
 alias tf=terraform
 alias tfi="terraform init"
@@ -532,7 +533,9 @@ function virtctl_install() {
 
   virtctl completion bash >completion_virtctl
   $USE_SUDO mv -f completion_virtctl $COMPLETION_FOLDER/virtctl
-  add_to_profile virtctl "source $COMPLETION_FOLDER/virtctl"
+  add_to_profile virtctl "source $COMPLETION_FOLDER/virtctl
+alias vc=virtctl
+complete -F __start_virtctl vc"
 }
 
 function neovim_install() {
@@ -802,12 +805,10 @@ function vault_install() {
 
 function bitwarden_install() {
   echo "installing bitwarden\e[0m"
-  snap version || echo snap not found, skipping && return
-  $USE_SUDO snap install bw
-  $USE_SUDO snap refresh
-  wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v1.0.0/bws-x86_64-unknown-linux-gnu-1.0.0.zip
-  unzip bws-x86_64-unknown-linux-gnu-1.0.0.zip
-  rm bws-x86_64-unknown-linux-gnu-1.0.0.zip
+  VERSION=$(curl -s https://api.github.com/repos/bitwarden/sdk-sm/releases | jq -r '.[] | select(.tag_name | test("bws"; "i")) | .tag_name' | head -1 | sed 's/bws-v//g')
+  wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v$VERSION/bws-x86_64-unknown-linux-gnu-$VERSION.zip -O bws.zip
+  unzip bws.zip
+  rm bws.zip
   $USE_SUDO mv bws /usr/local/bin/
 
   bws completions bash >completion_bitwarden
@@ -1102,6 +1103,7 @@ install_tools() {
   prepare
   neovim_install
   linux_desktop_install
+  bitwarden_install
   terraform_install
   #az_install
   kustomize_install
@@ -1133,7 +1135,6 @@ install_tools() {
   chatgpt_install
   gemini_install
   vault_install
-  bitwarden_install
   miscelanious_install
 }
 
