@@ -1022,7 +1022,7 @@ application/gzip=thunar.desktop;' >$HOME/.config/mimeapps.list
 
 function miscelanious_install() {
   echo "installing miscelanious\e[0m"
-  $USE_SUDO apt install -y duf gdu dos2unix zoxide htop iotop bind9-dnsutils net-tools tree lsd sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
+  $USE_SUDO apt install -y duf gdu dos2unix dropbear zoxide htop iotop bind9-dnsutils net-tools tree lsd sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
 
   $USE_SUDO bash -c "echo 'set completion-ignore-case On' >>/etc/inputrc"
 
