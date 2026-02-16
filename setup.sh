@@ -534,7 +534,9 @@ function virtctl_install() {
   virtctl completion bash >completion_virtctl
   $USE_SUDO mv -f completion_virtctl $COMPLETION_FOLDER/virtctl
   add_to_profile virtctl "source $COMPLETION_FOLDER/virtctl
+alias v=virtctl
 alias vc=virtctl
+complete -F __start_virtctl v
 complete -F __start_virtctl vc"
 }
 
