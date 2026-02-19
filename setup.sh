@@ -15,7 +15,7 @@ add_to_profile() {
   section=$1
   code=$2
 
-  grep "#$section" $_bashrc && (echo "\e[31mfound section $section, replacing\e[0m" && sed -i "/#$section/,/#\/$section/d" $_bashrc && sed -i '/^$/N;/\n$/s/\n//;P;D' $_bashrc) || echo -n
+  grep "#$section" $_bashrc && (echo -e "\e[31mfound section $section, replacing\e[0m" && sed -i "/#$section/,/#\/$section/d" $_bashrc && sed -i '/^$/N;/\n$/s/\n//;P;D' $_bashrc) || echo -n
 
   echo "" >>$_bashrc
   echo "#$section" >>$_bashrc
@@ -28,7 +28,7 @@ function proxy() {
   curl google.de || echo -e "\e[31mProxy needed? set HTTP_PROXY\e[0m"
   sleep 5
   if [ -n "$HTTP_PROXY" ]; then
-    echo "\e[31musing proxy $HTTP_PROXY\e[0m"
+    echo -e "\e[31musing proxy $HTTP_PROXY\e[0m"
     export https_proxy=$HTTP_PROXY
     export http_proxy=$HTTP_PROXY
     export HTTP_PROXY=$HTTP_PROXY
@@ -44,7 +44,7 @@ Acquire::https::Proxy \"$HTTP_PROXY\";" >/etc/apt/apt.conf
 }
 
 function prepare() {
-  sudo -v && export USE_SUDO="sudo" || echo "\e[31mno sudo found, continuing without\e[0m"
+  sudo -v && export USE_SUDO="sudo" || echo -e "\e[31mno sudo found, continuing without\e[0m"
 
   export OS_ARCH=$(uname -m)
   if [[ "$OS_ARCH" == "x86_64" ]]; then
@@ -264,7 +264,7 @@ function oc_install() {
   echo -e "\e[31mInstalling oc\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    echo "\e[31mskipping\e[0m"
+    echo -e "\e[31mskipping\e[0m"
     return
   fi
 
@@ -284,7 +284,7 @@ function krew_install() {
   echo -e "\e[31mInstalling krew\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    echo "\e[31mskipping\e[0m"
+    echo -e "\e[31mskipping\e[0m"
     return
   fi
 
@@ -414,8 +414,6 @@ alias kd=k9s"
 function go_install() {
   echo -e "\e[31mInstalling go\e[0m"
 
-  export GOFLAGS="-v"
-
   if [[ "$TERMUX" == "true" ]]; then
     apt install golang
   else
@@ -450,7 +448,7 @@ function docker_install() {
   echo -e "\e[31mInstalling docker\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    echo "\e[31mskipping\e[0m"
+    echo -e "\e[31mskipping\e[0m"
     return
   fi
 
@@ -490,7 +488,7 @@ function kyverno_install() {
   echo -e "\e[31mInstalling kyverno\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    echo "\e[31mskipping\e[0m"
+    echo -e "\e[31mskipping\e[0m"
     return
   fi
 
@@ -509,7 +507,7 @@ function istioctl_install() {
   echo -e "\e[31mInstalling istioctl\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    echo "\e[31mskipping\e[0m"
+    echo -e "\e[31mskipping\e[0m"
     return
   fi
 
@@ -750,7 +748,7 @@ vim.g.clipboard = {
 }
 vim.opt.clipboard = "unnamedplus"'
 
-  wslinfo --version && (echo "\e[31mon wls\e[0m" && echo "$OSC52_FIX_WSL" >>$HOME/.config/nvim/init.lua) || (termux-info && echo "\e[31mon termux\e[0m" && echo "$OSC52_FIX_TERMUX" >>$HOME/.config/nvim/init.lua || (echo "\e[31mon normal linux\e[0m" && echo 'vim.g.clipboard = "osc52" --for ssh' >>$HOME/.config/nvim/init.lua))
+  wslinfo --version && (echo -e "\e[31mon wls\e[0m" && echo "$OSC52_FIX_WSL" >>$HOME/.config/nvim/init.lua) || (termux-info && echo -e "\e[31mon termux\e[0m" && echo "$OSC52_FIX_TERMUX" >>$HOME/.config/nvim/init.lua || (echo -e "\e[31mon normal linux\e[0m" && echo 'vim.g.clipboard = "osc52" --for ssh' >>$HOME/.config/nvim/init.lua))
 
   echo 'vim.cmd(":set listchars=eol:$,tab:>-,trail:~,extends:>,precedes:<,space:⋅")
 vim.cmd(":set nolist")
@@ -1224,6 +1222,9 @@ function bitwarden_install() {
   rm bws.zip
   $USE_SUDO mv -f bws $BIN_PATH
 
+  bws completions bash >completion_bitwarden
+  $USE_SUDO mv -f completion_bitwarden $COMPLETION_FOLDER/bitwarden
+
   if [[ "$TERMUX" == "true" ]]; then
     add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
 source $HOME/.secure_vars
@@ -1234,8 +1235,6 @@ alias bws=\"\$PROOT_DNS_CERTS $BIN_PATH/bws\""
 source $HOME/.secure_vars"
   fi
 
-  bws completions bash >completion_bitwarden
-  $USE_SUDO mv -f completion_bitwarden $COMPLETION_FOLDER/bitwarden
   touch $HOME/.secure_vars
   source $HOME/.secure_vars
   echo -e "\e[31mSet BWS_ACCESS_TOKEN in $HOME/secure_vars\e[0m"
@@ -1245,9 +1244,9 @@ source $HOME/.secure_vars"
 function linux_desktop_install() {
   echo
   if systemctl is-enabled display-manager >/dev/null 2>&1; then
-    echo "\e[31mDisplay manager enabled (GUI expected)\e[0m"
+    echo -e "\e[31mDisplay manager enabled (GUI expected)\e[0m"
   else
-    echo "\e[31mNo enabled display manager\e[0m"
+    echo -e "\e[31mNo enabled display manager\e[0m"
     return 0
   fi
 
@@ -1443,7 +1442,7 @@ application/gzip=thunar.desktop;' >$HOME/.config/mimeapps.list
 
 function miscelanious_install() {
   echo -e "\e[31mInstalling miscelanious\e[0m"
-  $USE_SUDO apt install -y duf gdu dos2unix dropbear rclone zoxide htop net-tools tree lsd ncurses-utils
+  $USE_SUDO apt install -y duf gdu dos2unix rclone zoxide htop net-tools tree lsd ncurses-utils
 
   cat $HOME/.local/share/fonts/JetBrainsMonoNerdFont-Regular.ttf >/dev/null || (wget https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mkdir -p $HOME/.local/share/fonts && mv -f fonts/*.ttf $HOME/.local/share/fonts && rm -rf fonts JetBrainsMono.zip)
 
@@ -1452,7 +1451,7 @@ function miscelanious_install() {
     export INPUTRC_LOCATION=$PREFIX/etc/inputrc
     apt install -y which apache2 # apache2 => needed for htpasswd for argocd bcrypt
   else
-    apt install -y iotop bind9-dnsutils net-tools sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
+    apt install -y iotop dropbear bind9-dnsutils net-tools sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
   fi
 
   $USE_SUDO bash -c "echo 'set completion-ignore-case On' >> $INPUTRC_LOCATION"
@@ -1555,7 +1554,7 @@ export PROOT_DNS_CERTS="proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PR
 
   cat termux.properties | grep terminal-transcript-rows || echo "terminal-transcript-rows = 100000" >>termux.properties
 
-  apt install -y mandoc termux-auth openssh resolv-conf ca-certificates proot x11-repo tur-repo termux-api
+  apt install -y mandoc perl termux-auth openssh resolv-conf ca-certificates proot x11-repo tur-repo termux-api
   cat $HOME/.termux_authinfo >/dev/null || passwd
 
   echo 'background:     #000000
@@ -1583,7 +1582,7 @@ color15:         #E5E5E5' >colors.properties
   mkdir -p boot
   echo '#!$PREFIX/bin/sh
 termux-wake-lock
-dropbear' >boot/start.sh
+sshd' >boot/start.sh
   chmod +x boot/start.sh
 
   popd
@@ -1626,4 +1625,4 @@ install_tools() {
 }
 
 install_tools
-echo "\e[31msetup.sh finished successfully! Run 'source $HOME/.bashrc' or open a new bash shell to start using!\e[0m"
+echo -e "\e[31msetup.sh finished successfully! Run 'source $HOME/.bashrc' or open a new bash shell to start using!\e[0m"
