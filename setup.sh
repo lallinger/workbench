@@ -5,7 +5,8 @@ set -e
 export USE_SUDO=
 
 export BIN_PATH=/usr/local/bin
-
+export PKG_ARCH=
+export OS_ARCH=
 export COMPLETION_FOLDER="$HOME/completions"
 mkdir -p $COMPLETION_FOLDER
 _bashrc=$HOME/.bashrc
@@ -14,7 +15,7 @@ add_to_profile() {
   section=$1
   code=$2
 
-  grep "#$section" $_bashrc && (echo "found section $section, replacing" && sed -i "/#$section/,/#\/$section/d" $_bashrc && sed -i '/^$/N;/\n$/s/\n//;P;D' $_bashrc) || echo -n
+  grep "#$section" $_bashrc && (echo "\e[31mfound section $section, replacing\e[0m" && sed -i "/#$section/,/#\/$section/d" $_bashrc && sed -i '/^$/N;/\n$/s/\n//;P;D' $_bashrc) || echo -n
 
   echo "" >>$_bashrc
   echo "#$section" >>$_bashrc
@@ -24,36 +25,36 @@ add_to_profile() {
 }
 
 function proxy() {
-  curl google.de || echo "proxy needed? use './setup.sh http://proxy-address'"
+  curl google.de || echo -e "\e[31mProxy needed? set HTTP_PROXY\e[0m"
+  sleep 5
+  if [ -n "$HTTP_PROXY" ]; then
+    echo "\e[31musing proxy $HTTP_PROXY\e[0m"
+    export https_proxy=$HTTP_PROXY
+    export http_proxy=$HTTP_PROXY
+    export HTTP_PROXY=$HTTP_PROXY
+    export HTTPS_PROXY=$HTTP_PROXY
 
-  if [ -n "$http_proxy" ]; then
-    echo using proxy $proxy_address
-    export https_proxy=$proxy_address
-    export http_proxy=$proxy_address
-    export HTTP_PROXY=$proxy_address
-    export HTTPS_PROXY=$proxy_address
-
-    add_to_profile proxy "export https_proxy=$proxy_address
-export http_proxy=$proxy_address
-export HTTP_PROXY=$proxy_address
-export HTTPS_PROXY=$proxy_address"
-    echo "Acquire::http::Proxy \"$proxy_address\";
-Acquire::https::Proxy \"$proxy_address\";" >/etc/apt/apt.conf
+    add_to_profile proxy "export https_proxy=$HTTP_PROXY
+export http_proxy=$HTTP_PROXY
+export HTTP_PROXY=$HTTP_PROXY
+export HTTPS_PROXY=$HTTP_PROXY"
+    echo "Acquire::http::Proxy \"$HTTP_PROXY\";
+Acquire::https::Proxy \"$HTTP_PROXY\";" >/etc/apt/apt.conf
   fi
 }
 
 function prepare() {
-  sudo -v && export USE_SUDO="sudo" || echo no sudo found, continuing without
+  sudo -v && export USE_SUDO="sudo" || echo "\e[31mno sudo found, continuing without\e[0m"
 
-  arch=$(uname -m)
-  if [[ "$arch" == "x86_64" ]]; then
-    export ARCH=amd64
+  export OS_ARCH=$(uname -m)
+  if [[ "$OS_ARCH" == "x86_64" ]]; then
+    export PKG_ARCH=amd64
   fi
-  if [[ "$arch" == "aarch64" ]]; then
-    export ARCH=arm64
+  if [[ "$OS_ARCH" == "aarch64" ]]; then
+    export PKG_ARCH=arm64
   fi
 
-  termux-keystore list && export TERMUX=true
+  termux-info && export TERMUX=true
   if [[ "$TERMUX" == "true" ]]; then
     termux_install
   fi
@@ -61,37 +62,38 @@ function prepare() {
   proxy
   rm /etc/apt/apt.conf.d/docker-clean || echo "docker-clean not found => skipping delete" # enable shell completion for apt in ubuntu docker image
   add_to_profile xdg 'XDG_CONFIG_HOME="$HOME/.config"'
-  $USE_SUDO apt update
+
   export TZ=Europe/Berlin
   export DEBIAN_FRONTEND=noninteractive
+
+  $USE_SUDO apt update
   $USE_SUDO apt install -y curl wget git bash-completion jq
   $USE_SUDO apt upgrade -y
 }
 
 function terraform_install() {
-  echo -e "\e[31minstalling terraform\e[0m"
+  echo -e "\e[31mInstalling terraform\e[0m"
 
-  export VERSION=$(curl -s https://api.github.com/repos/hashicorp/terraform/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  VERSION=$(curl -s https://api.github.com/repos/hashicorp/terraform/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
 
-  wget https://releases.hashicorp.com/terraform/$VERSION/terraform_${VERSION}_linux_${ARCH}.zip -O terraform.zip
+  wget https://releases.hashicorp.com/terraform/$VERSION/terraform_${VERSION}_linux_${PKG_ARCH}.zip -O terraform.zip
   unzip terraform.zip
   $USE_SUDO mv -f terraform $BIN_PATH
-  rm terraform*
-  rm LICENSE.txt
+  rm terraform* LICENSE.txt
 
-  terraform -install-autocomplete || echo probably already added terraform autoinstall
+  terraform -install-autocomplete || echo "probably already added terraform autoinstall"
 
   if [[ "$TERMUX" == "true" ]]; then
     add_to_profile terraform 'complete -C /usr/bin/terraform tf
 complete -C /usr/bin/terraform terraform
-alias tf="proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PREFIX/etc/tls/cert.pem:/etc/ssl/certs/ca-certificates.crt terraform"
-alias tfi="proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PREFIX/etc/tls/cert.pem:/etc/ssl/certs/ca-certificates.crt terraform init"
-alias tfp="proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PREFIX/etc/tls/cert.pem:/etc/ssl/certs/ca-certificates.crt terraform plan"
-alias tfa="proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PREFIX/etc/tls/cert.pem:/etc/ssl/certs/ca-certificates.crt terraform apply"
-alias tfaa="proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PREFIX/etc/tls/cert.pem:/etc/ssl/certs/ca-certificates.crt terraform apply -auto-approve"
-alias tfd="proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PREFIX/etc/tls/cert.pem:/etc/ssl/certs/ca-certificates.crt terraform destroy"
-alias tfda="proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PREFIX/etc/tls/cert.pem:/etc/ssl/certs/ca-certificates.crt terraform destroy -auto-approve"'"
-export PASSWORD=\$(proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PREFIX/etc/tls/cert.pem:/etc/ssl/certs/ca-certificates.crt bws secret list | yq e '.[] | select(.key == \"password\") | .value')
+alias tf="$PROOT_DNS_CERTS terraform"
+alias tfi="$PROOT_DNS_CERTS terraform init"
+alias tfp="$PROOT_DNS_CERTS terraform plan"
+alias tfa="$PROOT_DNS_CERTS terraform apply"
+alias tfaa="$PROOT_DNS_CERTS terraform apply -auto-approve"
+alias tfd="$PROOT_DNS_CERTS terraform destroy"
+alias tfda="$PROOT_DNS_CERTS terraform destroy -auto-approve"'"
+export PASSWORD=\$(\$PROOT_DNS_CERTS bws secret list | yq e '.[] | select(.key == \"password\") | .value')
 export TF_VAR_password=\$PASSWORD
 export TF_VAR_bitwarden_access_token=\$BWS_ACCESS_TOKEN"
   else
@@ -113,9 +115,11 @@ export TF_VAR_bitwarden_access_token=\$BWS_ACCESS_TOKEN"
 }
 
 function kustomize_install() {
-  echo -e "\e[31minstalling kustomize\e[0m"
+  echo -e "\e[31mInstalling kustomize\e[0m"
+
   curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -
   $USE_SUDO mv -f kustomize $BIN_PATH
+
   kustomize completion bash >completion_kustomize
   $USE_SUDO mv -f completion_kustomize $COMPLETION_FOLDER/kustomize
   add_to_profile kustomize 'source'" $COMPLETION_FOLDER/kustomize"' 
@@ -124,7 +128,7 @@ alias touchk="touch kustomization.yaml && (kustomize edit remove resource \$(yq 
 }
 
 function helm_install() {
-  echo -e "\e[31minstalling helm\e[0m"
+  echo -e "\e[31mInstalling helm\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y helm
@@ -139,12 +143,13 @@ function helm_install() {
 }
 
 function kubectl_install() {
-  echo -e "\e[31minstalling kubectl\e[0m"
+  echo -e "\e[31mInstalling kubectl\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y kubectl
   else
-    curl -LO https://dl.k8s.io/release/$(curl -LS https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+    VERSION=$(curl -LS https://dl.k8s.io/release/stable.txt)
+    wget https://dl.k8s.io/release/$VERSION/bin/linux/$PKG_ARCH/kubectl -O kubectl
     chmod +x kubectl
     $USE_SUDO mv -f kubectl $BIN_PATH
   fi
@@ -256,88 +261,80 @@ alias kng="kubectl neat get"
 }
 
 function oc_install() {
-  echo -e "\e[31minstalling oc\e[0m"
+  echo -e "\e[31mInstalling oc\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    echo "skipping oc"
+    echo "\e[31mskipping\e[0m"
     return
   fi
 
-  wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
-  tar -xvf openshift-client-linux.tar.gz
+  wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz -O oc.tar.gz
+  tar -xvf oc.tar.gz
   $USE_SUDO mv oc $BIN_PATH
-  rm README.md
-  rm kubectl
-  rm openshift-client-linux.tar.gz
+  rm README.md kubectl oc.tar.gz
+
   oc completion bash >completion_oc
   $USE_SUDO mv -f completion_oc $COMPLETION_FOLDER/oc
   add_to_profile oc "source $COMPLETION_FOLDER/oc
 alias o=oc"
+  oc version --client
 }
 
 function krew_install() {
-  echo -e "\e[31minstalling krew\e[0m"
+  echo -e "\e[31mInstalling krew\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    echo skipping
+    echo "\e[31mskipping\e[0m"
     return
   fi
 
-  (
-    set -x
-    cd "$(mktemp -d)" &&
-      OS="$(uname | tr '[:upper:]' '[:lower:]')" &&
-      KREW="krew-${OS}_${ARCH}" &&
-      curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" &&
-      tar zxvf "${KREW}.tar.gz" &&
-      ./"${KREW}" install krew
-  )
+  OS="$(uname | tr '[:upper:]' '[:lower:]')"
+  KREW="krew-${OS}_${PKG_ARCH}"
+  wget "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" -O krew.tar.gz
+  tar -xvf krew.tar.gz
+  ./"${KREW}" install krew
+  rm -rf krew*
+
   add_to_profile krew 'export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin"'
   # completion not yet working: https://github.com/kubernetes-sigs/krew/issues/812
   export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin"
   $(find $HOME -iname krew -type f) version
 }
 
-function kubens_install() {
-  echo -e "\e[31minstalling kubens\e[0m"
-
-  if [[ "$TERMUX" == "true" ]]; then
-    git clone https://github.com/ahmetb/kubectx.git
-    mv -f kubectx/kubens $BIN_PATH
-    rm -rf kubectx
-  else
-    $(find $HOME -iname krew -type f) install ns
-  fi
-
-  add_to_profile kubens 'alias kns="kubectl ns"'
-  kubens --help
-}
-
 function kubectx_install() {
-  echo -e "\e[31minstalling kubectx\e[0m"
+  echo -e "\e[31mInstalling kubectx\e[0m"
+
   if [[ "$TERMUX" == "true" ]]; then
+    VERSION=$(curl -s https://api.github.com/repos/ahmetb/kubectx/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
     git clone https://github.com/ahmetb/kubectx.git
-    mv -f kubectx/kubectx $BIN_PATH
+    pushd kubectx
+    git checkout $VERSION
+    mv -f kubectx $BIN_PATH
+    mv -f kubens $BIN_PATH
+    popd
     rm -rf kubectx
   else
     $(find $HOME -iname krew -type f) install ctx
+    $(find $HOME -iname krew -type f) install ns
   fi
 
-  add_to_profile kubectx 'alias kctx="kubectl ctx"'
+  add_to_profile kubectx 'alias kctx="kubectl ctx"
+alias kns="kubectl ns"'
   kubectx --help
+  kubens --help
 }
 
 function netshoot_install() {
-  echo -e "\e[31minstalling netshoot\e[0m"
+  echo -e "\e[31mInstalling netshoot\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    export VERSION=$(curl -s https://api.github.com/repos/nilic/kubectl-netshoot/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    wget https://github.com/nilic/kubectl-netshoot/releases/download/v0.1.0/kubectl-netshoot_v${VERSION}_linux_arm64.tar.gz -O netshoot.tar.gz
+    VERSION=$(curl -s https://api.github.com/repos/nilic/kubectl-netshoot/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+    wget https://github.com/nilic/kubectl-netshoot/releases/download/v0.1.0/kubectl-netshoot_v${VERSION}_linux_$PKG_ARCH.tar.gz -O netshoot.tar.gz
     tar -xvf netshoot.tar.gz
     mv -f kubectl-netshoot $BIN_PATH/netshoot
     rm netshoot.tar.gz LICENSE README.md
   else
-    $(find $HOME -iname krew -type f) index add netshoot https://github.com/nilic/kubectl-netshoot.git || echo index already added
+    $(find $HOME -iname krew -type f) index add netshoot https://github.com/nilic/kubectl-netshoot.git || echo "index already added"
     $(find $HOME -iname krew -type f) install netshoot/netshoot
   fi
 
@@ -349,15 +346,15 @@ source $COMPLETION_FOLDER/netshoot"
 }
 
 function k9s_install() {
-  echo -e "\e[31minstalling k9s\e[0m"
+  echo -e "\e[31mInstalling k9s\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y k9s
   else
-    wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb
-    $USE_SUDO cp k9s_linux_amd64.deb /tmp/
-    $USE_SUDO apt install -y --fix-missing /tmp/k9s_linux_amd64.deb
-    rm ./k9s_linux_amd64.deb
+    wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_$PKG_ARCH.deb -O k9s.deb
+    $USE_SUDO cp k9s.deb /tmp/
+    $USE_SUDO apt install -y --fix-missing /tmp/k9s.deb
+    rm ./k9s.deb
   fi
 
   k9s completion bash >completion_k9s
@@ -415,75 +412,70 @@ alias kd=k9s"
 }
 
 function go_install() {
-  echo -e "\e[31minstalling go\e[0m"
+  echo -e "\e[31mInstalling go\e[0m"
+
+  export GOFLAGS="-v"
 
   if [[ "$TERMUX" == "true" ]]; then
     apt install golang
   else
-    export GO_INSTALL_PATH_BASE=/usr/local
-    export GO_INSTALL_PATH=$GO_INSTALL_PATH_BASE/go
-    mkdir -p $GO_INSTALL_PATH
-
-    if command -v go &>/dev/null; then
-      echo "Found pre-existing Go version. removing..."
-      $USE_SUDO rm -rf $GO_INSTALL_PATH
-    fi
+    export GO_PATH_BASE=/usr/local
+    export GO_PATH=$GO_PATH_BASE/go
+    go version >/dev/null && echo -e "\e[31mFound pre-existing go version. reinstalling...\e[0m" && $USE_SUDO rm -rf $GO_PATH
+    mkdir -p $GO_PATH
 
     GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | cut -d' ' -f3 | tr -d 'go')
-    wget https://go.dev/dl/go$GO_VERSION.linux-arm64.tar.gz -O go.tar.gz
-    $USE_SUDO rm -rf $GO_INSTALL_PATH && $USE_SUDO tar -C $GO_INSTALL_PATH_BASE -xzf go.tar.gz
+    wget https://go.dev/dl/go$GO_VERSION.linux-$PKG_ARCH.tar.gz -O go.tar.gz
+    $USE_SUDO rm -rf $GO_PATH && $USE_SUDO tar -C $GO_PATH_BASE -xzf go.tar.gz
     rm go.tar.gz
   fi
 
-  add_to_profile go 'export PATH="$PATH:'$GO_INSTALL_PATH'/bin:'$HOME'/go/bin"'
-  export PATH="$PATH:$GO_INSTALL_PATH/bin:$HOME/go/bin"
+  add_to_profile go 'export PATH="$PATH:'$GO_PATH'/bin:'$HOME'/go/bin"'
+  export PATH="$PATH:$GO_PATH/bin:$HOME/go/bin"
   go version
 }
 
 function kubecolor_install() {
-  echo -e "\e[31minstalling kubecolor\e[0m"
+  echo -e "\e[31mInstalling kubecolor\e[0m"
+
   go install github.com/kubecolor/kubecolor@latest
+
   add_to_profile kubecolor "alias kc=kubecolor
   alias kubectl=kubecolor
 complete -F __start_kubectl kubecolor"
-  $HOME/go/bin/kubecolor version --client
+  kubecolor version --client
 }
 
 function docker_install() {
-  echo -e "\e[31minstalling docker\e[0m"
+  echo -e "\e[31mInstalling docker\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    echo "skipping docker"
+    echo "\e[31mskipping\e[0m"
     return
   fi
 
   $USE_SUDO apt -y install docker.io
-  #alias docker=podman
+
   docker completion bash >completion_docker
   $USE_SUDO mv -f completion_docker $COMPLETION_FOLDER/docker
-
-  add_to_profile docker '#alias docker=podman
-function run-it() {
+  add_to_profile docker 'function run-it() {
   docker run -v "${PWD}:/pwd" "$1" /bin/bash -c : || ( echo fallback to sh && docker run -it -v "${PWD}:/pwd" "$1" /bin/sh ) && docker run -it -v "${PWD}:/pwd" "$1" /bin/bash
 }
 export -f run-it
 alias rit=run-it
 alias dbt="docker build . -t"'"
 source $COMPLETION_FOLDER/docker
-#complete -F __start_podman docker
 complete -F __start_docker docker"
-
-  #podman --version
   docker --version
 }
 
 function kubectl_neat_install() {
-  echo -e "\e[31minstalling kubectl neat\e[0m"
+  echo -e "\e[31mInstalling kubectl-neat\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    export VERSION=$(curl -s https://api.github.com/repos/itaysk/kubectl-neat/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    wget https://github.com/itaysk/kubectl-neat/releases/download/v$VERSION/kubectl-neat_linux_arm64.tar.gz
-    tar -xvf kubectl-neat_linux_arm64.tar.gz
+    VERSION=$(curl -s https://api.github.com/repos/itaysk/kubectl-neat/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+    wget https://github.com/itaysk/kubectl-neat/releases/latest/download/kubectl-neat_linux_$PKG_ARCH.tar.gz -O kubectl-neat.tar.gz
+    tar -xvf kubectl-neat.tar.gz
     mv -f kubectl-neat $BIN_PATH
     rm -rf LICENSE kubectl-neat*
   else
@@ -495,17 +487,18 @@ function kubectl_neat_install() {
 }
 
 function kyverno_install() {
-  echo -e "\e[31minstalling kyverno\e[0m"
+  echo -e "\e[31mInstalling kyverno\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    echo skipping
+    echo "\e[31mskipping\e[0m"
     return
   fi
 
-  wget https://github.com/kyverno/kyverno/releases/download/v1.16.1/kyverno-cli_v1.16.1_linux_x86_64.tar.gz
-  tar -xvf kyverno-cli_v1.16.1_linux_x86_64.tar.gz
+  wget https://github.com/kyverno/kyverno/releases/download/v1.16.1/kyverno-cli_v1.16.1_linux_$OS_ARCH.tar.gz -O kyverno.tar.gz
+  tar -xvf kyverno.tar.gz
   $USE_SUDO mv kyverno $BIN_PATH
-  rm -rf kyverno-cli_v1.16.1_linux_x86_64.tar.gz LICENSE
+  rm -rf kyverno.tar.gz LICENSE
+
   kyverno completion bash >completion_kyverno
   $USE_SUDO mv -f completion_kyverno $COMPLETION_FOLDER/kyverno
   add_to_profile kyverno "source $COMPLETION_FOLDER/kyverno"
@@ -513,16 +506,17 @@ function kyverno_install() {
 }
 
 function istioctl_install() {
-  echo -e "\e[31minstalling istioctl\e[0m"
+  echo -e "\e[31mInstalling istioctl\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    echo skipping
+    echo "\e[31mskipping\e[0m"
     return
   fi
 
   curl -L https://istio.io/downloadIstio | sh -
   $USE_SUDO mv istio-*/bin/istioctl $BIN_PATH
   rm -rf istio-*
+
   istioctl completion bash >completion_istioctl
   $USE_SUDO mv -f completion_istioctl $COMPLETION_FOLDER/istioctl
   add_to_profile istioctl "source $COMPLETION_FOLDER/istioctl"
@@ -530,19 +524,24 @@ function istioctl_install() {
 }
 
 function mc_install() {
-  echo -e "\e[31minstalling mc\e[0m"
-  wget https://dl.min.io/client/mc/release/linux-$ARCH/mc
+  echo -e "\e[31mInstalling mc\e[0m"
+
+  wget https://dl.min.io/client/mc/release/linux-$PKG_ARCH/mc
   chmod +x mc
   $USE_SUDO mv mc $BIN_PATH
+
   export SHELL=/bin/bash # ensure shell for docker
   mc --autocompletion
   mc --version
 }
 
 function yq_install() {
-  echo -e "\e[31minstalling yq\e[0m"
-  $USE_SUDO wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$ARCH -O $BIN_PATH/yq
-  $USE_SUDO chmod +x $BIN_PATH/yq
+  echo -e "\e[31mInstalling yq\e[0m"
+
+  wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$PKG_ARCH -O yq
+  chmod +x yq
+  $USE_SUDO mv -f yq $BIN_PATH
+
   yq completion bash >completion_yq
   $USE_SUDO mv -f completion_yq $COMPLETION_FOLDER/yq
   add_to_profile yq "source $COMPLETION_FOLDER/yq"
@@ -550,7 +549,8 @@ function yq_install() {
 }
 
 function ccat_install() {
-  echo -e "\e[31minstalling ccat\e[0m"
+  echo -e "\e[31mInstalling ccat\e[0m"
+
   VERSION=$(curl https://api.github.com/repos/batmac/ccat/releases | jq -r '.[0].tag_name' | sed 's/v//g')
 
   if [[ "$TERMUX" == "true" ]]; then
@@ -563,7 +563,7 @@ function ccat_install() {
     popd
     rm -rf ccat
   else
-    wget https://github.com/batmac/ccat/releases/download/v$VERSION/ccat-$VERSION-linux-amd64.tar.gz -O ccat.tar.gz
+    wget https://github.com/batmac/ccat/releases/download/v$VERSION/ccat-$VERSION-linux-$PKG_ARCH.tar.gz -O ccat.tar.gz
     tar -xvf ccat.tar.gz
     $USE_SUDO mv -f ccat $BIN_PATH
     rm ccat.tar.gz
@@ -572,21 +572,21 @@ function ccat_install() {
 
   add_to_profile ccat "alias cat=ccat
 alias _cat=$BIN_PATH/cat"
-
   ccat --version
 }
 
 function talosctl_install() {
-  echo -e "\e[31minstalling talosctl\e[0m"
+  echo -e "\e[31mInstalling talosctl\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    VERSION=$(curl https://api.github.com/repos/siderolabs/talos/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    wget https://github.com/siderolabs/talos/releases/download/v$VERSION/talosctl-linux-arm64 -O talosctl
-    chmod +x talosctl
-    mv -f talosctl $BIN_PATH
+    MODIFIER="proot -b $PREFIX/tmp:/tmp"
   else
-    curl -sL https://talos.dev/install | sh
+    MODIFIER="$USE_SUDO"
   fi
+
+  wget https://talos.dev/install
+  export INSTALLPATH=$BIN_PATH && $MODIFIER bash install
+  rm install
 
   talosctl completion bash >completion_talosctl
   $USE_SUDO mv -f completion_talosctl $COMPLETION_FOLDER/talosctl
@@ -596,7 +596,7 @@ alias tctl=talosctl"
 }
 
 function python_install() {
-  echo -e "\e[31minstalling python\e[0m"
+  echo -e "\e[31mInstalling python\e[0m"
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y python
     pip install pipx
@@ -607,26 +607,28 @@ function python_install() {
 }
 
 function speedtest_install() {
-  echo -e "\e[31minstalling speedtest\e[0m"
+  echo -e "\e[31mInstalling speedtest\e[0m"
+
   add_to_profile speedtest 'alias speedtest="wget -O /dev/null https://proof.ovh.net/files/10Gb.dat"
 alias fast=speedtest'
 }
 
 function operator_sdk_install() {
-  echo -e "\e[31minstalling operator-sdk\e[0m"
+  echo -e "\e[31mInstalling operator-sdk\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
+    VERSION=$(curl -s https://api.github.com/repos/operator-framework/operator-sdk/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
     git clone https://github.com/operator-framework/operator-sdk.git
     pushd operator-sdk
+    git checkout $VERSION
     make install
     popd
     rm -rf operator-sdk
   else
     export OS=$(uname | awk '{print tolower($0)}')
-    export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/latest/download/
-    curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
-    chmod +x operator-sdk_${OS}_${ARCH}
-    $USE_SUDO mv -f operator-sdk_${OS}_${ARCH} $BIN_PATH/operator-sdk
+    wget https://github.com/operator-framework/operator-sdk/releases/latest/download/operator-sdk_${OS}_${PKG_ARCH} -O operator_sdk
+    chmod +x operator-sdk
+    $USE_SUDO mv -f operator-sdk $BIN_PATH
   fi
 
   operator-sdk completion bash >completion_operator_sdk
@@ -636,8 +638,9 @@ function operator_sdk_install() {
 }
 
 function argocd_install() {
-  echo -e "\e[31minstalling argocd\e[0m"
-  wget https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-$ARCH -O argocd
+  echo -e "\e[31mInstalling argocd\e[0m"
+
+  wget https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-$PKG_ARCH -O argocd
   chmod +x argocd
   $USE_SUDO mv -f argocd $BIN_PATH
 
@@ -648,9 +651,9 @@ function argocd_install() {
 }
 
 function virtctl_install() {
-  echo -e "\e[31minstalling virtctl\e[0m"
+  echo -e "\e[31mInstalling virtctl\e[0m"
 
-  export VERSION=$(curl https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt)
+  VERSION=$(curl https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt)
 
   if [[ "$TERMUX" == "true" ]]; then
     :
@@ -658,7 +661,7 @@ function virtctl_install() {
     kubectl krew install virt
   fi
 
-  wget https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/virtctl-${VERSION}-linux-$ARCH -O virtctl
+  wget https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/virtctl-${VERSION}-linux-$PKG_ARCH -O virtctl
   chmod +x virtctl
   $USE_SUDO mv -f virtctl $BIN_PATH
 
@@ -669,15 +672,14 @@ alias v=virtctl
 alias vc=virtctl
 complete -F __start_virtctl v
 complete -F __start_virtctl vc"
-
   virtctl version --client
 }
 
 function neovim_install() {
-  echo -e "\e[31minstalling neovim\e[0m"
+  echo -e "\e[31mInstalling neovim\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    apt install ruby #neovim
+    apt install -y ruby neovim lua54 luarocks
   else
     $USE_SUDO npm install -g n
     $USE_SUDO n lts
@@ -687,22 +689,22 @@ function neovim_install() {
       npm config set proxy $http_proxy
       npm config set https-proxy $http_proxy
     fi
-    curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
-    chmod u+x nvim-linux-x86_64.appimage
-    $USE_SUDO mv -f nvim-linux-x86_64.appimage $BIN_PATH/nvim
+    wget https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$OS_ARCH.appimage -O nvim
+    chmod u+x nvim
+    $USE_SUDO mv -f nvim $BIN_PATH
 
-    rm -rf $HOME/.config/nvim
-    git clone https://github.com/LazyVim/starter $HOME/.config/nvim
-    rm -rf $HOME/.config/nvim/.git
-
-    wget https://luarocks.org/releases/luarocks-3.12.2.tar.gz
-    tar zxpf luarocks-3.12.2.tar.gz
-    pushd luarocks-3.12.2
+    wget https://luarocks.org/releases/luarocks-3.13.0.tar.gz -O luarocks.tar.gz
+    tar zxpf luarocks.tar.gz
+    pushd luarocks
     $USE_SUDO bash -c './configure && make && make install'
     $USE_SUDO luarocks install luasocket
     popd
-    $USE_SUDO rm -rf luarocks-3.12.2 luarocks-3.12.2.tar.gz
+    $USE_SUDO rm -rf luarocks*
   fi
+
+  rm -rf $HOME/.config/nvim
+  git clone https://github.com/LazyVim/starter $HOME/.config/nvim
+  rm -rf $HOME/.config/nvim/.git
 
   $USE_SUDO apt install -y fzf ripgrep nodejs npm
   $USE_SUDO gem install neovim
@@ -748,7 +750,7 @@ vim.g.clipboard = {
 }
 vim.opt.clipboard = "unnamedplus"'
 
-  wslinfo --version && (echo "on wls" && echo "$OSC52_FIX_WSL" >>$HOME/.config/nvim/init.lua) || (termux-keystore list && echo "on termux" && echo "$OSC52_FIX_TERMUX" >>$HOME/.config/nvim/init.lua || (echo "on normal linux" && echo 'vim.g.clipboard = "osc52" --for ssh' >>$HOME/.config/nvim/init.lua))
+  wslinfo --version && (echo "\e[31mon wls\e[0m" && echo "$OSC52_FIX_WSL" >>$HOME/.config/nvim/init.lua) || (termux-info && echo "\e[31mon termux\e[0m" && echo "$OSC52_FIX_TERMUX" >>$HOME/.config/nvim/init.lua || (echo "\e[31mon normal linux\e[0m" && echo 'vim.g.clipboard = "osc52" --for ssh' >>$HOME/.config/nvim/init.lua))
 
   echo 'vim.cmd(":set listchars=eol:$,tab:>-,trail:~,extends:>,precedes:<,space:⋅")
 vim.cmd(":set nolist")
@@ -860,7 +862,7 @@ vim.keymap.set({'n', 'i', 'v'}, '<M-d>', '<Del>', { noremap = true, silent = tru
 -- Force Alt+Backspace to just be Backspace in Insert Mode
 vim.keymap.set('i', '<M-BS>', '<BS>', { noremap = true, silent = true })" >>$HOME/.config/nvim/init.lua
 
-  echo "-- ~/.config/nvim/lua/config/keymaps.lua
+  echo "-- $HOME/.config/nvim/lua/config/keymaps.lua
 -- 1. THE CORE LOGIC FUNCTIONS (No changes here)
 local function smart_j()
   if vim.v.count == 0 then
@@ -1100,8 +1102,9 @@ export VISUAL=nvim"
 }
 
 function chatgpt_install() {
-  echo "[31minstalling chatgpt\e[0m"
-  wget https://github.com/kardolus/chatgpt-cli/releases/latest/download/chatgpt-linux-$ARCH -O chatgpt
+  echo -e "\e[31mInstalling chatgpt\e[0m"
+
+  wget https://github.com/kardolus/chatgpt-cli/releases/latest/download/chatgpt-linux-$PKG_ARCH -O chatgpt
   chmod +x chatgpt
   $USE_SUDO mv chatgpt $BIN_PATH
   mkdir -p $HOME/.chatgpt-cli
@@ -1116,7 +1119,7 @@ complete -C $BIN_PATH/chatgpt c
 export OPENAI_MODEL=gpt-5-mini
 export OPENAI_TRACK_TOKEN_USAGE=true
 export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'
-export OPENAI_API_KEY=\$(proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PREFIX/etc/tls/cert.pem:/etc/ssl/certs/ca-certificates.crt bws secret list | yq e '.[] | select(.key == \"openai-api-key\") | .value')"
+export OPENAI_API_KEY=\$(\$PROOT_DNS_CERTS bws secret list | yq e '.[] | select(.key == \"openai-api-key\") | .value')"
   else
     add_to_profile chatgpt "source $COMPLETION_FOLDER/chatgpt
 alias c=chatgpt
@@ -1126,25 +1129,24 @@ export OPENAI_TRACK_TOKEN_USAGE=true
 export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'
 export OPENAI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"openai-api-key\") | .value')"
   fi
-
   chatgpt --version
 }
 
 function gemini_install() {
-  echo "[31minstalling gemini\e[0m"
-  $USE_SUDO npm install -g @google/gemini-cli
+  echo -e "\e[31mInstalling gemini\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    mkdir ~/.gyp && echo "{'variables':{'android_ndk_path':''}}" >~/.gyp/include.gypi
+    mkdir $HOME/.gyp && echo "{'variables':{'android_ndk_path':''}}" >$HOME/.gyp/include.gypi
     add_to_profile gemini 'alias g=gemini
 alias gi="gemini -i"'"
-export GEMINI_API_KEY=\$(proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PREFIX/etc/tls/cert.pem:/etc/ssl/certs/ca-certificates.crt bws secret list | yq e '.[] | select(.key == \"gemini-api-key\") | .value')"
+export GEMINI_API_KEY=\$(\$PROOT_DNS_CERTS bws secret list | yq e '.[] | select(.key == \"gemini-api-key\") | .value')"
   else
     add_to_profile gemini 'alias g=gemini
   alias gi="gemini -i"'"
 export GEMINI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"gemini-api-key\") | .value')"
-
   fi
+
+  $USE_SUDO npm install -g @google/gemini-cli
 
   mkdir -p $HOME/.gemini
   echo '{
@@ -1165,10 +1167,12 @@ export GEMINI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"gemini-a
 }
 
 function codex_install() {
-  echo "[31minstalling codex\e[0m"
+  echo -e "\e[31mInstalling codex\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y codex
+  else
+    npm i -g @openai/codex
   fi
 
   codex completion bash >completion_codex
@@ -1179,42 +1183,49 @@ alias co=codex"
 }
 
 function vault_install() {
-  echo "[31minstalling vault\e[0m"
+  echo -e "\e[31mInstalling vault\e[0m"
 
-  export VERSION=$(curl -s https://api.github.com/repos/hashicorp/vault/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  VERSION=$(curl -s https://api.github.com/repos/hashicorp/vault/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
 
   if [[ "$TERMUX" == "true" ]]; then
     git clone https://github.com/hashicorp/vault.git
     pushd vault
     git checkout v$VERSION
-    make bootstrap || echo ignore make bootstrap error
+    echo -e "\e[31mbuilding may take quite some time depending on your device!\e[0m"
+    make bootstrap || echo "ignore make bootstrap error"
     make
     mv -f bin/vault $BIN_PATH
     popd
     rm -rf vault
   else
-    wget https://releases.hashicorp.com/vault/$VERSION/vault_${VERSION}_linux_${ARCH}.zip -O vault.zip
+    wget https://releases.hashicorp.com/vault/$VERSION/vault_${VERSION}_linux_${PKG_ARCH}.zip -O vault.zip
     unzip vault.zip
     $USE_SUDO mv -f vault $BIN_PATH
     rm vault.zip
   fi
 
-  vault -autocomplete-install || echo vault autocomplete already installed
+  vault -autocomplete-install || echo "vault autocomplete already installed"
   vault version
 }
 
 function bitwarden_install() {
-  echo "[31minstalling bitwarden\e[0m"
+  echo -e "\e[31mInstalling bitwarden\e[0m"
+
   VERSION=$(curl -s https://api.github.com/repos/bitwarden/sdk-sm/releases | jq -r '.[] | select(.tag_name | test("bws"; "i")) | .tag_name' | head -1 | sed 's/bws-v//g')
 
   if [[ "$TERMUX" == "true" ]]; then
-    export BWS_ARCH=bws-aarch64-unknown-linux-musl
-    wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v$VERSION/bws-aarch64-unknown-linux-musl-$VERSION.zip -O bws.zip
+    export BWS_ARCH=musl
+    add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
+source $HOME/.secure_vars
+alias bws=\"\$PROOT_DNS_CERTS $BIN_PATH/bws\""
+    alias bws="$PROOT_DNS_CERTS bws"
   else
-    wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v$VERSION/bws-x86_64-unknown-linux-gnu-$VERSION.zip -O bws.zip
+    export BWS_ARCH=gnu
+    add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
+source $HOME/.secure_vars"
   fi
 
-  wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v$VERSION/$BWS_ARCH-$VERSION.zip -O bws.zip
+  wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v$VERSION/bws-$OS_ARCH-unknown-linux-$BWS_ARCH-$VERSION.zip -O bws.zip
   unzip bws.zip
   rm bws.zip
   $USE_SUDO mv -f bws $BIN_PATH
@@ -1223,17 +1234,16 @@ function bitwarden_install() {
   $USE_SUDO mv -f completion_bitwarden $COMPLETION_FOLDER/bitwarden
   touch $HOME/.secure_vars
   source $HOME/.secure_vars
-  # set BWS_ACCESS_TOKEN in ~/.secure_vars !
-  add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
-source ~/.secure_vars"
+  echo -e "\e[31mSet BWS_ACCESS_TOKEN in $HOME/secure_vars\e[0m"
+  bws --version
 }
 
 function linux_desktop_install() {
   echo
   if systemctl is-enabled display-manager >/dev/null 2>&1; then
-    echo "Display manager enabled (GUI expected)"
+    echo "\e[31mDisplay manager enabled (GUI expected)\e[0m"
   else
-    echo "No enabled display manager"
+    echo "\e[31mNo enabled display manager\e[0m"
     return 0
   fi
 
@@ -1400,8 +1410,6 @@ application/zip=thunar.desktop;
 application/epub+zip=org.gnome.Nautilus.desktop;thunar.desktop;
 application/gzip=thunar.desktop;' >$HOME/.config/mimeapps.list
 
-  cat $HOME/.local/share/fonts/JetBrainsMonoNerdFont-Regular.ttf >/dev/null || (wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mkdir -p $HOME/.local/share/fonts && mv -f fonts/*.ttf $HOME/.local/share/fonts && rm -rf fonts JetBrainsMono.zip)
-
   echo '[global_config]
 [keybindings]
   split_auto = <Primary>t
@@ -1430,13 +1438,15 @@ application/gzip=thunar.desktop;' >$HOME/.config/mimeapps.list
 }
 
 function miscelanious_install() {
-  echo "[31minstalling miscelanious\e[0m"
-  $USE_SUDO apt install -y duf gdu dos2unix dropbear rclone zoxide htop net-tools tree lsd
+  echo -e "\e[31mInstalling miscelanious\e[0m"
+  $USE_SUDO apt install -y duf gdu dos2unix dropbear rclone zoxide htop net-tools tree lsd ncurses-utils
+
+  cat $HOME/.local/share/fonts/JetBrainsMonoNerdFont-Regular.ttf >/dev/null || (wget https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mkdir -p $HOME/.local/share/fonts && mv -f fonts/*.ttf $HOME/.local/share/fonts && rm -rf fonts JetBrainsMono.zip)
 
   export INPUTRC_LOCATION=/etc/inputrc
   if [[ "$TERMUX" == "true" ]]; then
     export INPUTRC_LOCATION=$PREFIX/etc/inputrc
-    apt install which
+    apt install -y which apache2 # apache2 => needed for htpasswd for argocd bcrypt
   else
     apt install -y iotop bind9-dnsutils net-tools sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
   fi
@@ -1497,7 +1507,7 @@ export HISTSIZE=
 export HISTTIMEFORMAT="[%F %T] "
 # Change the file location because certain bash sessions truncate .bash_history file upon close.
 # http://superuser.com/questions/575479/bash-history-truncated-to-500-lines-on-each-login
-export HISTFILE=~/.eternal_history_bash
+export HISTFILE=$HOME/.eternal_history_bash
 # Force prompt to write history after every command.
 ## http://superuser.com/questions/20900/bash-history-loss
 alias hist="history -a && history -r"
@@ -1508,8 +1518,8 @@ alias hist="history -a && history -r"
   mv $1 "$path"$2 
 }'
 
-  add_to_profile bashrc 'alias bashrc="vim ~/.bashrc"
-alias src="source ~/.bashrc"'
+  add_to_profile bashrc "alias bashrc=\"vim $_bashrc\"
+alias src=\"source $_bashrc\""
 
   add_to_profile apt 'alias ai="apt install"
 alias aiy="apt install -y"
@@ -1520,25 +1530,28 @@ alias ar="apt remove"'
 
   echo '#!/usr/bin/bash
 cd /mnt/c/Users/$WIN_USER' >$HOME/.win_home
-  add_to_profile home "alias home='source ~/.win_home'"
+  add_to_profile home "alias home='source $HOME/.win_home'"
 
 }
 
 function termux_install() {
-  echo "[31minstalling termux specifics\e[0m"
+  echo -e "\e[31mInstalling termux specifics\e[0m"
+
   pushd $HOME/.termux
 
   echo "cd $PREFIX" >$HOME/.prefix
-  add_to_profile termux "alias prefix=\"source $HOME/.prefix\""
+  add_to_profile termux 'alias prefix="source $HOME/.prefix"
+export PROOT_DNS_CERTS="proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PREFIX/etc/tls/cert.pem:/etc/ssl/certs/ca-certificates.crt"'
+  export PROOT_DNS_CERTS="proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PREFIX/etc/tls/cert.pem:/etc/ssl/certs/ca-certificates.crt"
 
-  export BIN_PATH=$HOME/.local/bin
-  mkdir -p $HOME/bin
+  export BIN_PATH=$PREFIX/bin
+  mkdir -p $BIN_PATH
   add_to_profile path 'export PATH=$PATH:'"$BIN_PATH"
   export PATH=$PATH:$BIN_PATH
 
   cat termux.properties | grep terminal-transcript-rows || echo "terminal-transcript-rows = 100000" >>termux.properties
 
-  apt install -y termux-auth openssh resolv-conf ca-certificates proot
+  apt install -y mandoc termux-auth openssh resolv-conf ca-certificates proot x11-repo tur-repo termux-api
   cat $HOME/.termux_authinfo >/dev/null || passwd
 
   echo 'background:     #000000
@@ -1561,9 +1574,7 @@ color13:         #E500E5
 color14:         #00E5E5
 color15:         #E5E5E5' >colors.properties
 
-  ls $HOME/storage/downloads >/dev/null || (termux-setup-storage && ln -s $HOME/storage/downloads $HOME/downloads)
-
-  apt install -y mandoc
+  ls $HOME/downloads >/dev/null || (termux-setup-storage && ln -s $HOME/storage/downloads $HOME/downloads)
 
   mkdir -p boot
   echo '#!$PREFIX/bin/sh
@@ -1576,6 +1587,7 @@ dropbear' >boot/start.sh
 
 install_tools() {
   prepare
+  miscelanious_install
   neovim_install
   linux_desktop_install
   go_install
@@ -1587,7 +1599,6 @@ install_tools() {
   kubectl_install
   oc_install
   krew_install
-  kubens_install
   kubectx_install
   netshoot_install
   k9s_install
@@ -1608,8 +1619,7 @@ install_tools() {
   gemini_install
   codex_install
   vault_install
-  miscelanious_install
 }
 
 install_tools
-echo setup.sh finished successfully! Run 'source $HOME/.bashrc' or open a new bash shell to start using!
+echo "\e[31msetup.sh finished successfully! Run 'source $HOME/.bashrc' or open a new bash shell to start using!\e[0m"
