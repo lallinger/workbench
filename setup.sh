@@ -415,7 +415,7 @@ function go_install() {
   echo -e "\e[31mInstalling go\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    apt install golang
+    apt install -y golang
   else
     export GO_PATH_BASE=/usr/local
     export GO_PATH=$GO_PATH_BASE/go
@@ -708,10 +708,6 @@ function neovim_install() {
   rm -rf $HOME/.config/nvim/.git
 
   if [[ "$TERMUX" == "true" ]]; then
-    apt install -y ruby neovim lua54 luarocks lua-language-server rust
-    cargo install stylua
-    add_to_profile stylua 'export PATH=PATH:$HOME/.cargo/bin'
-
     echo 'return {
   {
     "mason-org/mason-lspconfig.nvim",
