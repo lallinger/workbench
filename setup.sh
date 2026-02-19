@@ -428,8 +428,8 @@ function go_install() {
     rm go.tar.gz
   fi
 
-  add_to_profile go 'export PATH="$PATH:'$GO_PATH'/bin:'$HOME'/go/bin"'
-  export PATH="$PATH:$GO_PATH/bin:$HOME/go/bin"
+  add_to_profile go 'export PATH="$PATH:'$GO_PATH'/bin"'
+  export PATH="$PATH:$GO_PATH/bin"
   go version
 }
 
@@ -679,7 +679,7 @@ function neovim_install() {
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y ruby neovim lua54 luarocks lua-language-server rust
     cargo install stylua
-    add_to_profile stylua 'export PATH=PATH:$HOME/.cargo/bin'
+    add_to_profile stylua 'export PATH=$PATH:$HOME/.cargo/bin'
     go install github.com/hashicorp/terraform-ls@latest
   else
     $USE_SUDO npm install -g n
@@ -1672,9 +1672,9 @@ sshd' >boot/start.sh
 install_tools() {
   prepare
   miscelanious_install
+  go_install
   neovim_install
   linux_desktop_install
-  go_install
   bitwarden_install
   terraform_install
   yq_install
