@@ -677,7 +677,10 @@ function neovim_install() {
   echo -e "\e[31mInstalling neovim\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    apt install -y ruby neovim lua54 luarocks
+    apt install -y ruby neovim lua54 luarocks lua-language-server rust
+    cargo install stylua
+    add_to_profile stylua 'export PATH=PATH:$HOME/.cargo/bin'
+    go install github.com/hashicorp/terraform-ls@latest
   else
     $USE_SUDO npm install -g n
     $USE_SUDO n lts
@@ -703,6 +706,83 @@ function neovim_install() {
   rm -rf $HOME/.config/nvim
   git clone https://github.com/LazyVim/starter $HOME/.config/nvim
   rm -rf $HOME/.config/nvim/.git
+
+  if [[ "$TERMUX" == "true" ]]; then
+    apt install -y ruby neovim lua54 luarocks lua-language-server rust
+    cargo install stylua
+    add_to_profile stylua 'export PATH=PATH:$HOME/.cargo/bin'
+
+    echo 'return {
+  {
+    "mason-org/mason-lspconfig.nvim",
+    opts = function(_, opts)
+      -- Ensure ensure_installed exists
+      opts.ensure_installed = opts.ensure_installed or {}
+
+      -- Filter out lua_ls from mason-lspconfig specifically
+      opts.ensure_installed = vim.tbl_filter(function(server)
+        return server ~= "lua_ls"
+      end, opts.ensure_installed)
+    end,
+  },
+  {
+    "neovim/nvim-lspconfig",
+    opts = {
+      servers = {
+        terraformls = {
+          mason = false,
+          cmd = { vim.fn.expand("$HOME/go/bin/terraform-ls"), "serve" },
+        },
+        lua_ls = {
+          mason = false,
+          cmd = { "lua-language-server" },
+        },
+      },
+    },
+  },
+}' >$HOME/.config/nvim/lua/plugins/lsp.lua
+
+    echo 'return {
+  {
+    "mason-org/mason.nvim",
+    opts = function(_, opts)
+      -- Add both variations just to be safe
+      local unsupported = { "stylua", "lua-language-server", "lua_ls", "terraformls" }
+      opts.ensure_installed = opts.ensure_installed or {}
+
+      local filtered = {}
+      for _, pkg in ipairs(opts.ensure_installed) do
+        local is_unsupported = false
+        for _, unsupp_name in ipairs(unsupported) do
+          if pkg == unsupp_name then
+            is_unsupported = true
+            break
+          end
+        end
+        if not is_unsupported then
+          table.insert(filtered, pkg)
+        end
+      end
+      opts.ensure_installed = filtered
+    end,
+  },
+}' >$HOME/.config/nvim/lua/plugins/mason.lua
+  fi
+
+  echo '{
+  "extras": [
+    "lazyvim.plugins.extras.lang.docker",
+    "lazyvim.plugins.extras.lang.git",
+    "lazyvim.plugins.extras.lang.go",
+    "lazyvim.plugins.extras.lang.helm",
+    "lazyvim.plugins.extras.lang.json",
+    "lazyvim.plugins.extras.lang.markdown",
+    "lazyvim.plugins.extras.lang.sql",
+    "lazyvim.plugins.extras.lang.terraform",
+    "lazyvim.plugins.extras.lang.toml",
+    "lazyvim.plugins.extras.lang.yaml"
+  ]
+}' >$HOME/.config/nvim/lazyvim.json
 
   $USE_SUDO apt install -y fzf ripgrep nodejs npm
   $USE_SUDO gem install neovim
@@ -1413,6 +1493,8 @@ application/zip=thunar.desktop;
 application/epub+zip=org.gnome.Nautilus.desktop;thunar.desktop;
 application/gzip=thunar.desktop;' >$HOME/.config/mimeapps.list
 
+  cat $HOME/.local/share/fonts/JetBrainsMonoNerdFont-Regular.ttf >/dev/null || (wget https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mkdir -p $HOME/.local/share/fonts && mv -f fonts/*.ttf $HOME/.local/share/fonts && rm -rf fonts JetBrainsMono.zip)
+
   echo '[global_config]
 [keybindings]
   split_auto = <Primary>t
@@ -1444,12 +1526,11 @@ function miscelanious_install() {
   echo -e "\e[31mInstalling miscelanious\e[0m"
   $USE_SUDO apt install -y duf gdu dos2unix rclone zoxide htop net-tools tree lsd ncurses-utils
 
-  cat $HOME/.local/share/fonts/JetBrainsMonoNerdFont-Regular.ttf >/dev/null || (wget https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mkdir -p $HOME/.local/share/fonts && mv -f fonts/*.ttf $HOME/.local/share/fonts && rm -rf fonts JetBrainsMono.zip)
-
   export INPUTRC_LOCATION=/etc/inputrc
   if [[ "$TERMUX" == "true" ]]; then
     export INPUTRC_LOCATION=$PREFIX/etc/inputrc
     apt install -y which apache2 # apache2 => needed for htpasswd for argocd bcrypt
+    cat $HOME/.termux/font.ttf >/dev/null || (wget https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mv -f fonts/JetBrainsMonoNerdFont-Regular.ttf $HOME/.termux/font.ttf && rm -rf fonts JetBrainsMono.zip)
   else
     apt install -y iotop dropbear bind9-dnsutils net-tools sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
   fi
