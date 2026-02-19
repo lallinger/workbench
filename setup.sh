@@ -1215,20 +1215,24 @@ function bitwarden_install() {
 
   if [[ "$TERMUX" == "true" ]]; then
     export BWS_ARCH=musl
-    add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
-source $HOME/.secure_vars
-alias bws=\"\$PROOT_DNS_CERTS $BIN_PATH/bws\""
-    alias bws="$PROOT_DNS_CERTS bws"
   else
     export BWS_ARCH=gnu
-    add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
-source $HOME/.secure_vars"
   fi
 
   wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v$VERSION/bws-$OS_ARCH-unknown-linux-$BWS_ARCH-$VERSION.zip -O bws.zip
   unzip bws.zip
   rm bws.zip
   $USE_SUDO mv -f bws $BIN_PATH
+
+  if [[ "$TERMUX" == "true" ]]; then
+    add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
+source $HOME/.secure_vars
+alias bws=\"\$PROOT_DNS_CERTS $BIN_PATH/bws\""
+    alias bws="$PROOT_DNS_CERTS bws"
+  else
+    add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
+source $HOME/.secure_vars"
+  fi
 
   bws completions bash >completion_bitwarden
   $USE_SUDO mv -f completion_bitwarden $COMPLETION_FOLDER/bitwarden
