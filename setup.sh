@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e -u -o pipefail
+set -e -o pipefail
 
 export USE_SUDO=
 
@@ -68,6 +68,7 @@ function prepare() {
   fi
 
   proxy
+  set -u
   rm -f /etc/apt/apt.conf.d/docker-clean # enable shell completion for apt in ubuntu docker image
   add_to_profile xdg 'XDG_CONFIG_HOME="$HOME/.config"'
 
@@ -126,8 +127,18 @@ export TF_VAR_bitwarden_access_token=\$BWS_ACCESS_TOKEN"
 function kustomize_install() {
   echo -e "\e[31mInstalling kustomize\e[0m"
 
-  curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -
-  $USE_SUDO mv -f kustomize $BIN_PATH
+  if [[ "$TERMUX" == "true" ]]; then
+    VERSION=$(curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases | jq -r '[.[] | select(.prerelease == false)] | [.[] | select(.tag_name | contains("kustomize"))] | .[0].tag_name')
+    git clone https://github.com/kubernetes-sigs/kustomize.git
+    pushd kustomize
+    git checkout $VERSION
+    make kustomize
+    popd
+    rm -rf kustomize
+  else
+    curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -
+    $USE_SUDO mv -f kustomize $BIN_PATH
+  fi
 
   kustomize completion bash >completion_kustomize
   $USE_SUDO mv -f completion_kustomize $COMPLETION_FOLDER/kustomize
@@ -430,18 +441,19 @@ alias kd=k9s"
 function go_install() {
   echo -e "\e[31mInstalling go\e[0m"
 
+  export GO_PATH=$HOME/go/bin/
+
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y golang
   else
     export GO_PATH_BASE=/usr/local
-    export GO_PATH=$GO_PATH_BASE/go
-    go version >/dev/null && echo -e "\e[31mFound pre-existing go version. reinstalling...\e[0m" && $USE_SUDO rm -rf $GO_PATH
-    mkdir -p $GO_PATH
+    go version >/dev/null && echo -e "\e[31mFound pre-existing go version. reinstalling...\e[0m" && $USE_SUDO rm -rf $GO_PATH_BASE/go
+    mkdir -p $GO_PATH_BASE/go
 
     GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | cut -d' ' -f3 | tr -d 'go')
     tmpdir="$(mktemp -d)"
     wget https://go.dev/dl/go$GO_VERSION.linux-$PKG_ARCH.tar.gz -O "$tmpdir/go.tar.gz"
-    $USE_SUDO rm -rf $GO_PATH && $USE_SUDO tar -C $GO_PATH_BASE -xzf "$tmpdir/go.tar.gz"
+    $USE_SUDO rm -rf $GO_PATH_BASE/go && $USE_SUDO tar -C $GO_PATH_BASE/go_BASE -xzf "$tmpdir/go.tar.gz"
     rm -rf "$tmpdir"
   fi
 
