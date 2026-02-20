@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -e -u -o pipefail
 
 export USE_SUDO=
 
@@ -60,7 +60,7 @@ function prepare() {
   fi
 
   proxy
-  rm /etc/apt/apt.conf.d/docker-clean || echo "docker-clean not found => skipping delete" # enable shell completion for apt in ubuntu docker image
+  rm -f /etc/apt/apt.conf.d/docker-clean # enable shell completion for apt in ubuntu docker image
   add_to_profile xdg 'XDG_CONFIG_HOME="$HOME/.config"'
 
   export TZ=Europe/Berlin
@@ -1312,6 +1312,7 @@ source $HOME/.secure_vars"
   fi
 
   touch $HOME/.secure_vars
+  chmod 600 $HOME/.secure_vars
   source $HOME/.secure_vars
   echo -e "\e[31mSet BWS_ACCESS_TOKEN in $HOME/secure_vars\e[0m"
   bws --version
