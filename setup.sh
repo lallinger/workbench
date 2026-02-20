@@ -11,6 +11,14 @@ export COMPLETION_FOLDER="$HOME/completions"
 mkdir -p $COMPLETION_FOLDER
 _bashrc=$HOME/.bashrc
 
+set_krew_bin() {
+  if [ -n "$KREW_BIN" ]; then
+    export "$KREW_BIN"
+    return 0
+  fi
+  KREW_BIN="$(find "$HOME" -iname krew -type f 2>/dev/null | head -1)"
+}
+
 add_to_profile() {
   section=$1
   code=$2
@@ -76,10 +84,11 @@ function terraform_install() {
 
   VERSION=$(curl -s https://api.github.com/repos/hashicorp/terraform/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
 
-  wget https://releases.hashicorp.com/terraform/$VERSION/terraform_${VERSION}_linux_${PKG_ARCH}.zip -O terraform.zip
-  unzip terraform.zip
-  $USE_SUDO mv -f terraform $BIN_PATH
-  rm terraform* LICENSE.txt
+  tmpdir="$(mktemp -d)"
+  wget https://releases.hashicorp.com/terraform/$VERSION/terraform_${VERSION}_linux_${PKG_ARCH}.zip -O "$tmpdir/terraform.zip"
+  unzip "$tmpdir/terraform.zip" -d "$tmpdir"
+  $USE_SUDO mv -f "$tmpdir/terraform" $BIN_PATH
+  rm -rf "$tmpdir"
 
   terraform -install-autocomplete || echo "probably already added terraform autoinstall"
 
@@ -149,9 +158,11 @@ function kubectl_install() {
     apt install -y kubectl
   else
     VERSION=$(curl -LS https://dl.k8s.io/release/stable.txt)
-    wget https://dl.k8s.io/release/$VERSION/bin/linux/$PKG_ARCH/kubectl -O kubectl
-    chmod +x kubectl
-    $USE_SUDO mv -f kubectl $BIN_PATH
+    tmpdir="$(mktemp -d)"
+    wget https://dl.k8s.io/release/$VERSION/bin/linux/$PKG_ARCH/kubectl -O "$tmpdir/kubectl"
+    chmod +x "$tmpdir/kubectl"
+    $USE_SUDO mv -f "$tmpdir/kubectl" $BIN_PATH
+    rm -rf "$tmpdir"
   fi
 
   kubectl completion bash >completion_kubectl
@@ -268,10 +279,11 @@ function oc_install() {
     return
   fi
 
-  wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz -O oc.tar.gz
-  tar -xvf oc.tar.gz
-  $USE_SUDO mv oc $BIN_PATH
-  rm README.md kubectl oc.tar.gz
+  tmpdir="$(mktemp -d)"
+  wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz -O "$tmpdir/oc.tar.gz"
+  tar -xvf "$tmpdir/oc.tar.gz" -C "$tmpdir"
+  $USE_SUDO mv "$tmpdir/oc" $BIN_PATH
+  rm -rf "$tmpdir"
 
   oc completion bash >completion_oc
   $USE_SUDO mv -f completion_oc $COMPLETION_FOLDER/oc
@@ -290,15 +302,17 @@ function krew_install() {
 
   OS="$(uname | tr '[:upper:]' '[:lower:]')"
   KREW="krew-${OS}_${PKG_ARCH}"
-  wget "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" -O krew.tar.gz
-  tar -xvf krew.tar.gz
-  ./"${KREW}" install krew
-  rm -rf krew*
+  tmpdir="$(mktemp -d)"
+  wget "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" -O "$tmpdir/krew.tar.gz"
+  tar -xvf "$tmpdir/krew.tar.gz" -C "$tmpdir"
+  "$tmpdir/${KREW}" install krew
+  rm -rf "$tmpdir"
 
   add_to_profile krew 'export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin"'
   # completion not yet working: https://github.com/kubernetes-sigs/krew/issues/812
   export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin"
-  $(find $HOME -iname krew -type f) version
+  set_krew_bin
+  $KREW_BIN version
 }
 
 function kubectx_install() {
@@ -314,8 +328,8 @@ function kubectx_install() {
     popd
     rm -rf kubectx
   else
-    $(find $HOME -iname krew -type f) install ctx
-    $(find $HOME -iname krew -type f) install ns
+    "$KREW_BIN" install ctx
+    "$KREW_BIN" install ns
   fi
 
   add_to_profile kubectx 'alias kctx="kubectl ctx"
@@ -329,13 +343,14 @@ function netshoot_install() {
 
   if [[ "$TERMUX" == "true" ]]; then
     VERSION=$(curl -s https://api.github.com/repos/nilic/kubectl-netshoot/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    wget https://github.com/nilic/kubectl-netshoot/releases/download/v0.1.0/kubectl-netshoot_v${VERSION}_linux_$PKG_ARCH.tar.gz -O netshoot.tar.gz
-    tar -xvf netshoot.tar.gz
-    mv -f kubectl-netshoot $BIN_PATH/netshoot
-    rm netshoot.tar.gz LICENSE README.md
+    tmpdir="$(mktemp -d)"
+    wget https://github.com/nilic/kubectl-netshoot/releases/download/v0.1.0/kubectl-netshoot_v${VERSION}_linux_$PKG_ARCH.tar.gz -O "$tmpdir/netshoot.tar.gz"
+    tar -xvf "$tmpdir/netshoot.tar.gz" -C "$tmpdir"
+    mv -f "$tmpdir/kubectl-netshoot" $BIN_PATH/netshoot
+    rm -rf "$tmpdir"
   else
-    $(find $HOME -iname krew -type f) index add netshoot https://github.com/nilic/kubectl-netshoot.git || echo "index already added"
-    $(find $HOME -iname krew -type f) install netshoot/netshoot
+    "$KREW_BIN" index add netshoot https://github.com/nilic/kubectl-netshoot.git || echo "index already added"
+    "$KREW_BIN" install netshoot/netshoot
   fi
 
   netshoot completion bash >completion_netshoot
@@ -351,10 +366,11 @@ function k9s_install() {
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y k9s
   else
-    wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_$PKG_ARCH.deb -O k9s.deb
-    $USE_SUDO cp k9s.deb /tmp/
+    tmpdir="$(mktemp -d)"
+    wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_$PKG_ARCH.deb -O "$tmpdir/k9s.deb"
+    $USE_SUDO cp "$tmpdir/k9s.deb" /tmp/
     $USE_SUDO apt install -y --fix-missing /tmp/k9s.deb
-    rm ./k9s.deb
+    rm -rf "$tmpdir"
   fi
 
   k9s completion bash >completion_k9s
@@ -423,9 +439,10 @@ function go_install() {
     mkdir -p $GO_PATH
 
     GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | cut -d' ' -f3 | tr -d 'go')
-    wget https://go.dev/dl/go$GO_VERSION.linux-$PKG_ARCH.tar.gz -O go.tar.gz
-    $USE_SUDO rm -rf $GO_PATH && $USE_SUDO tar -C $GO_PATH_BASE -xzf go.tar.gz
-    rm go.tar.gz
+    tmpdir="$(mktemp -d)"
+    wget https://go.dev/dl/go$GO_VERSION.linux-$PKG_ARCH.tar.gz -O "$tmpdir/go.tar.gz"
+    $USE_SUDO rm -rf $GO_PATH && $USE_SUDO tar -C $GO_PATH_BASE -xzf "$tmpdir/go.tar.gz"
+    rm -rf "$tmpdir"
   fi
 
   add_to_profile go 'export PATH="$PATH:'$GO_PATH'/bin"'
@@ -472,12 +489,13 @@ function kubectl_neat_install() {
 
   if [[ "$TERMUX" == "true" ]]; then
     VERSION=$(curl -s https://api.github.com/repos/itaysk/kubectl-neat/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    wget https://github.com/itaysk/kubectl-neat/releases/latest/download/kubectl-neat_linux_$PKG_ARCH.tar.gz -O kubectl-neat.tar.gz
-    tar -xvf kubectl-neat.tar.gz
-    mv -f kubectl-neat $BIN_PATH
-    rm -rf LICENSE kubectl-neat*
+    tmpdir="$(mktemp -d)"
+    wget https://github.com/itaysk/kubectl-neat/releases/latest/download/kubectl-neat_linux_$PKG_ARCH.tar.gz -O "$tmpdir/kubectl-neat.tar.gz"
+    tar -xvf "$tmpdir/kubectl-neat.tar.gz" -C "$tmpdir"
+    mv -f "$tmpdir/kubectl-neat" $BIN_PATH
+    rm -rf "$tmpdir"
   else
-    $(find $HOME -iname krew -type f) install neat
+    "$KREW_BIN" install neat
   fi
 
   add_to_profile neat "alias kn='kubectl-neat'"
@@ -492,10 +510,11 @@ function kyverno_install() {
     return
   fi
 
-  wget https://github.com/kyverno/kyverno/releases/download/v1.16.1/kyverno-cli_v1.16.1_linux_$OS_ARCH.tar.gz -O kyverno.tar.gz
-  tar -xvf kyverno.tar.gz
-  $USE_SUDO mv kyverno $BIN_PATH
-  rm -rf kyverno.tar.gz LICENSE
+  tmpdir="$(mktemp -d)"
+  wget https://github.com/kyverno/kyverno/releases/download/v1.16.1/kyverno-cli_v1.16.1_linux_$OS_ARCH.tar.gz -O "$tmpdir/kyverno.tar.gz"
+  tar -xvf "$tmpdir/kyverno.tar.gz" -C "$tmpdir"
+  $USE_SUDO mv "$tmpdir/kyverno" $BIN_PATH
+  rm -rf "$tmpdir"
 
   kyverno completion bash >completion_kyverno
   $USE_SUDO mv -f completion_kyverno $COMPLETION_FOLDER/kyverno
@@ -524,9 +543,11 @@ function istioctl_install() {
 function mc_install() {
   echo -e "\e[31mInstalling mc\e[0m"
 
-  wget https://dl.min.io/client/mc/release/linux-$PKG_ARCH/mc
-  chmod +x mc
-  $USE_SUDO mv mc $BIN_PATH
+  tmpdir="$(mktemp -d)"
+  wget https://dl.min.io/client/mc/release/linux-$PKG_ARCH/mc -O "$tmpdir/mc"
+  chmod +x "$tmpdir/mc"
+  $USE_SUDO mv "$tmpdir/mc" $BIN_PATH
+  rm -rf "$tmpdir"
 
   export SHELL=/bin/bash # ensure shell for docker
   mc --autocompletion
@@ -536,9 +557,11 @@ function mc_install() {
 function yq_install() {
   echo -e "\e[31mInstalling yq\e[0m"
 
-  wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$PKG_ARCH -O yq
-  chmod +x yq
-  $USE_SUDO mv -f yq $BIN_PATH
+  tmpdir="$(mktemp -d)"
+  wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$PKG_ARCH -O "$tmpdir/yq"
+  chmod +x "$tmpdir/yq"
+  $USE_SUDO mv -f "$tmpdir/yq" $BIN_PATH
+  rm -rf "$tmpdir"
 
   yq completion bash >completion_yq
   $USE_SUDO mv -f completion_yq $COMPLETION_FOLDER/yq
@@ -561,10 +584,11 @@ function ccat_install() {
     popd
     rm -rf ccat
   else
-    wget https://github.com/batmac/ccat/releases/download/v$VERSION/ccat-$VERSION-linux-$PKG_ARCH.tar.gz -O ccat.tar.gz
-    tar -xvf ccat.tar.gz
-    $USE_SUDO mv -f ccat $BIN_PATH
-    rm ccat.tar.gz
+    tmpdir="$(mktemp -d)"
+    wget https://github.com/batmac/ccat/releases/download/v$VERSION/ccat-$VERSION-linux-$PKG_ARCH.tar.gz -O "$tmpdir/ccat.tar.gz"
+    tar -xvf "$tmpdir/ccat.tar.gz" -C "$tmpdir"
+    $USE_SUDO mv -f "$tmpdir/ccat" $BIN_PATH
+    rm -rf "$tmpdir"
 
   fi
 
@@ -582,9 +606,10 @@ function talosctl_install() {
     MODIFIER="$USE_SUDO"
   fi
 
-  wget https://talos.dev/install
-  export INSTALLPATH=$BIN_PATH && $MODIFIER bash install
-  rm install
+  tmpdir="$(mktemp -d)"
+  wget https://talos.dev/install -O "$tmpdir/install"
+  export INSTALLPATH=$BIN_PATH && $MODIFIER bash "$tmpdir/install"
+  rm -rf "$tmpdir"
 
   talosctl completion bash >completion_talosctl
   $USE_SUDO mv -f completion_talosctl $COMPLETION_FOLDER/talosctl
@@ -624,9 +649,11 @@ function operator_sdk_install() {
     rm -rf operator-sdk
   else
     export OS=$(uname | awk '{print tolower($0)}')
-    wget https://github.com/operator-framework/operator-sdk/releases/latest/download/operator-sdk_${OS}_${PKG_ARCH} -O operator_sdk
-    chmod +x operator-sdk
-    $USE_SUDO mv -f operator-sdk $BIN_PATH
+    tmpdir="$(mktemp -d)"
+    wget https://github.com/operator-framework/operator-sdk/releases/latest/download/operator-sdk_${OS}_${PKG_ARCH} -O "$tmpdir/operator-sdk"
+    chmod +x "$tmpdir/operator-sdk"
+    $USE_SUDO mv -f "$tmpdir/operator-sdk" $BIN_PATH
+    rm -rf "$tmpdir"
   fi
 
   operator-sdk completion bash >completion_operator_sdk
@@ -638,9 +665,11 @@ function operator_sdk_install() {
 function argocd_install() {
   echo -e "\e[31mInstalling argocd\e[0m"
 
-  wget https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-$PKG_ARCH -O argocd
-  chmod +x argocd
-  $USE_SUDO mv -f argocd $BIN_PATH
+  tmpdir="$(mktemp -d)"
+  wget https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-$PKG_ARCH -O "$tmpdir/argocd"
+  chmod +x "$tmpdir/argocd"
+  $USE_SUDO mv -f "$tmpdir/argocd" $BIN_PATH
+  rm -rf "$tmpdir"
 
   argocd completion bash >completion_argocd
   $USE_SUDO mv -f completion_argocd $COMPLETION_FOLDER/argocd
@@ -659,9 +688,11 @@ function virtctl_install() {
     kubectl krew install virt
   fi
 
-  wget https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/virtctl-${VERSION}-linux-$PKG_ARCH -O virtctl
-  chmod +x virtctl
-  $USE_SUDO mv -f virtctl $BIN_PATH
+  tmpdir="$(mktemp -d)"
+  wget https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/virtctl-${VERSION}-linux-$PKG_ARCH -O "$tmpdir/virtctl"
+  chmod +x "$tmpdir/virtctl"
+  $USE_SUDO mv -f "$tmpdir/virtctl" $BIN_PATH
+  rm -rf "$tmpdir"
 
   virtctl completion bash >completion_virtctl
   $USE_SUDO mv -f completion_virtctl $COMPLETION_FOLDER/virtctl
@@ -690,17 +721,20 @@ function neovim_install() {
       npm config set proxy $http_proxy
       npm config set https-proxy $http_proxy
     fi
-    wget https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$OS_ARCH.appimage -O nvim
-    chmod u+x nvim
-    $USE_SUDO mv -f nvim $BIN_PATH
+    tmpdir="$(mktemp -d)"
+    wget https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$OS_ARCH.appimage -O "$tmpdir/nvim"
+    chmod u+x "$tmpdir/nvim"
+    $USE_SUDO mv -f "$tmpdir/nvim" $BIN_PATH
+    rm -rf "$tmpdir"
 
-    wget https://luarocks.org/releases/luarocks-3.13.0.tar.gz -O luarocks.tar.gz
-    tar zxpf luarocks.tar.gz
-    pushd luarocks
+    tmpdir="$(mktemp -d)"
+    wget https://luarocks.org/releases/luarocks-3.13.0.tar.gz -O "$tmpdir/luarocks.tar.gz"
+    tar zxpf "$tmpdir/luarocks.tar.gz" -C "$tmpdir"
+    pushd "$tmpdir"/luarocks*
     $USE_SUDO bash -c './configure && make && make install'
     $USE_SUDO luarocks install luasocket
     popd
-    $USE_SUDO rm -rf luarocks*
+    rm -rf "$tmpdir"
   fi
 
   rm -rf $HOME/.config/nvim
@@ -1178,9 +1212,11 @@ export VISUAL=nvim"
 function chatgpt_install() {
   echo -e "\e[31mInstalling chatgpt\e[0m"
 
-  wget https://github.com/kardolus/chatgpt-cli/releases/latest/download/chatgpt-linux-$PKG_ARCH -O chatgpt
-  chmod +x chatgpt
-  $USE_SUDO mv chatgpt $BIN_PATH
+  tmpdir="$(mktemp -d)"
+  wget https://github.com/kardolus/chatgpt-cli/releases/latest/download/chatgpt-linux-$PKG_ARCH -O "$tmpdir/chatgpt"
+  chmod +x "$tmpdir/chatgpt"
+  $USE_SUDO mv "$tmpdir/chatgpt" $BIN_PATH
+  rm -rf "$tmpdir"
   mkdir -p $HOME/.chatgpt-cli
 
   chatgpt completion bash >completion_chatgpt
@@ -1272,10 +1308,11 @@ function vault_install() {
     popd
     rm -rf vault
   else
-    wget https://releases.hashicorp.com/vault/$VERSION/vault_${VERSION}_linux_${PKG_ARCH}.zip -O vault.zip
-    unzip vault.zip
-    $USE_SUDO mv -f vault $BIN_PATH
-    rm vault.zip
+    tmpdir="$(mktemp -d)"
+    wget https://releases.hashicorp.com/vault/$VERSION/vault_${VERSION}_linux_${PKG_ARCH}.zip -O "$tmpdir/vault.zip"
+    unzip "$tmpdir/vault.zip" -d "$tmpdir"
+    $USE_SUDO mv -f "$tmpdir/vault" $BIN_PATH
+    rm -rf "$tmpdir"
   fi
 
   vault -autocomplete-install || echo "vault autocomplete already installed"
@@ -1293,10 +1330,11 @@ function bitwarden_install() {
     export BWS_ARCH=gnu
   fi
 
-  wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v$VERSION/bws-$OS_ARCH-unknown-linux-$BWS_ARCH-$VERSION.zip -O bws.zip
-  unzip bws.zip
-  rm bws.zip
-  $USE_SUDO mv -f bws $BIN_PATH
+  tmpdir="$(mktemp -d)"
+  wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v$VERSION/bws-$OS_ARCH-unknown-linux-$BWS_ARCH-$VERSION.zip -O "$tmpdir/bws.zip"
+  unzip "$tmpdir/bws.zip" -d "$tmpdir"
+  $USE_SUDO mv -f "$tmpdir/bws" $BIN_PATH
+  rm -rf "$tmpdir"
 
   bws completions bash >completion_bitwarden
   $USE_SUDO mv -f completion_bitwarden $COMPLETION_FOLDER/bitwarden
@@ -1593,11 +1631,6 @@ export HISTFILE=$HOME/.eternal_history_bash
 ## http://superuser.com/questions/20900/bash-history-loss
 alias hist="history -a && history -r"
 #PROMPT_COMMAND="history -a; $PROMPT_COMMAND"'
-
-  add_to_profile rename 'function rename() {
-  path=$(echo -n $1 | sed "s|/[^/]*$|/|")
-  mv $1 "$path"$2 
-}'
 
   add_to_profile bashrc "alias bashrc=\"vim $_bashrc\"
 alias src=\"source $_bashrc\""
