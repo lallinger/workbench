@@ -11,14 +11,6 @@ export COMPLETION_FOLDER="$HOME/completions"
 mkdir -p $COMPLETION_FOLDER
 _bashrc=$HOME/.bashrc
 
-set_krew_bin() {
-  if [ -n "$KREW_BIN" ]; then
-    export "$KREW_BIN"
-    return 0
-  fi
-  KREW_BIN="$(find "$HOME" -iname krew -type f 2>/dev/null | head -1)"
-}
-
 add_to_profile() {
   section=$1
   code=$2
@@ -62,7 +54,8 @@ function prepare() {
     export PKG_ARCH=arm64
   fi
 
-  termux-info && export TERMUX=true
+  termux-info && export TERMUX=true || export TERMUX=false
+  echo TERMUX enabled: $TERMUX
   if [[ "$TERMUX" == "true" ]]; then
     termux_install
   fi
@@ -153,7 +146,10 @@ function helm_install() {
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y helm
   else
-    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    wget https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    $USE_SUDO chmod +x get-helm-3
+    ./get-helm-3
+    rm get-helm-3
   fi
 
   helm completion bash >completion_helm
@@ -322,43 +318,43 @@ function krew_install() {
   add_to_profile krew 'export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin"'
   # completion not yet working: https://github.com/kubernetes-sigs/krew/issues/812
   export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin"
-  set_krew_bin
+  export KREW_BIN="$(find "$HOME" -iname krew -type f 2>/dev/null | head -1)"
   $KREW_BIN version
 }
 
 function kubectx_install() {
   echo -e "\e[31mInstalling kubectx\e[0m"
-
+  VERSION=$(curl -s https://api.github.com/repos/ahmetb/kubectx/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
+  git clone https://github.com/ahmetb/kubectx.git
+  pushd kubectx
+  git checkout $VERSION
+  $USE_SUDO mv -f kubectx $BIN_PATH
+  $USE_SUDO mv -f kubens $BIN_PATH
+  popd
+  rm -rf kubectx
   if [[ "$TERMUX" == "true" ]]; then
-    VERSION=$(curl -s https://api.github.com/repos/ahmetb/kubectx/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
-    git clone https://github.com/ahmetb/kubectx.git
-    pushd kubectx
-    git checkout $VERSION
-    mv -f kubectx $BIN_PATH
-    mv -f kubens $BIN_PATH
-    popd
-    rm -rf kubectx
+    :
   else
     "$KREW_BIN" install ctx
     "$KREW_BIN" install ns
   fi
 
-  add_to_profile kubectx 'alias kctx="kubectl ctx"
-alias kns="kubectl ns"'
+  add_to_profile kubectx 'alias kctx="kubectlctx"
+alias kns="kubectlns"'
   kubectx --help
   kubens --help
 }
 
 function netshoot_install() {
   echo -e "\e[31mInstalling netshoot\e[0m"
-
+  VERSION=$(curl -s https://api.github.com/repos/nilic/kubectl-netshoot/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  tmpdir="$(mktemp -d)"
+  wget https://github.com/nilic/kubectl-netshoot/releases/download/v0.1.0/kubectl-netshoot_v${VERSION}_linux_$PKG_ARCH.tar.gz -O "$tmpdir/netshoot.tar.gz"
+  tar -xvf "$tmpdir/netshoot.tar.gz" -C "$tmpdir"
+  $USE_SUDO mv -f "$tmpdir/kubectl-netshoot" $BIN_PATH/netshoot
+  rm -rf "$tmpdir"
   if [[ "$TERMUX" == "true" ]]; then
-    VERSION=$(curl -s https://api.github.com/repos/nilic/kubectl-netshoot/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    tmpdir="$(mktemp -d)"
-    wget https://github.com/nilic/kubectl-netshoot/releases/download/v0.1.0/kubectl-netshoot_v${VERSION}_linux_$PKG_ARCH.tar.gz -O "$tmpdir/netshoot.tar.gz"
-    tar -xvf "$tmpdir/netshoot.tar.gz" -C "$tmpdir"
-    mv -f "$tmpdir/kubectl-netshoot" $BIN_PATH/netshoot
-    rm -rf "$tmpdir"
+    :
   else
     "$KREW_BIN" index add netshoot https://github.com/nilic/kubectl-netshoot.git || echo "index already added"
     "$KREW_BIN" install netshoot/netshoot
@@ -441,19 +437,18 @@ alias kd=k9s"
 function go_install() {
   echo -e "\e[31mInstalling go\e[0m"
 
-  export GO_PATH=$HOME/go/bin/
+  export GO_PATH=$HOME/go
 
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y golang
   else
     export GO_PATH_BASE=/usr/local
     go version >/dev/null && echo -e "\e[31mFound pre-existing go version. reinstalling...\e[0m" && $USE_SUDO rm -rf $GO_PATH_BASE/go
-    mkdir -p $GO_PATH_BASE/go
 
     GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | cut -d' ' -f3 | tr -d 'go')
     tmpdir="$(mktemp -d)"
     wget https://go.dev/dl/go$GO_VERSION.linux-$PKG_ARCH.tar.gz -O "$tmpdir/go.tar.gz"
-    $USE_SUDO rm -rf $GO_PATH_BASE/go && $USE_SUDO tar -C $GO_PATH_BASE/go_BASE -xzf "$tmpdir/go.tar.gz"
+    $USE_SUDO tar -C $GO_PATH_BASE -xzf "$tmpdir/go.tar.gz"
     rm -rf "$tmpdir"
   fi
 
@@ -719,20 +714,26 @@ complete -F __start_virtctl vc"
 function neovim_install() {
   echo -e "\e[31mInstalling neovim\e[0m"
 
+  export USE_SUDO_PROXY="$USE_SUDO"
+
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y ruby neovim lua54 luarocks lua-language-server rust
     cargo install stylua
     add_to_profile stylua 'export PATH=$PATH:$HOME/.cargo/bin'
     go install github.com/hashicorp/terraform-ls@latest
   else
-    $USE_SUDO npm install -g n
-    $USE_SUDO n lts
-    $USE_SUDO npm install -g tree-sitter-cli
-    apt install ruby-full fd-find lua5.4 liblua5.4-0 liblua5.4-dev
     if [ -n "$http_proxy" ]; then
+      echo using proxy for npm
       npm config set proxy $http_proxy
       npm config set https-proxy $http_proxy
+      export USE_SUDO_PROXY="$USE_SUDO https_proxy=$https_proxy"
     fi
+
+    $USE_SUDO npm install -g n
+    $USE_SUDO_PROXY n lts
+    $USE_SUDO_PROXY npm install -g tree-sitter-cli
+    $USE_SUDO apt install ruby-full fd-find lua5.4 liblua5.4-0 liblua5.4-dev
+
     tmpdir="$(mktemp -d)"
     wget https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$OS_ARCH.appimage -O "$tmpdir/nvim"
     chmod u+x "$tmpdir/nvim"
@@ -741,12 +742,14 @@ function neovim_install() {
 
     tmpdir="$(mktemp -d)"
     wget https://luarocks.org/releases/luarocks-3.13.0.tar.gz -O "$tmpdir/luarocks.tar.gz"
-    tar zxpf "$tmpdir/luarocks.tar.gz" -C "$tmpdir"
-    pushd "$tmpdir"/luarocks*
-    $USE_SUDO bash -c './configure && make && make install'
-    $USE_SUDO luarocks install luasocket
+    pushd $tmpdir
+    tar -xvf luarocks.tar.gz
+    pushd luarocks-*
+    $USE_SUDO_PROXY bash -c './configure && make && make install'
+    $USE_SUDO_PROXY luarocks install luasocket
     popd
-    rm -rf "$tmpdir"
+    popd
+    $USE_SUDO rm -rf "$tmpdir"
   fi
 
   rm -rf $HOME/.config/nvim
@@ -827,7 +830,7 @@ function neovim_install() {
 }' >$HOME/.config/nvim/lazyvim.json
 
   $USE_SUDO apt install -y fzf ripgrep nodejs npm
-  $USE_SUDO gem install neovim
+  $USE_SUDO_PROXY gem install neovim
 
   echo 'require("config.lazy")' >$HOME/.config/nvim/init.lua
 
@@ -1571,15 +1574,15 @@ application/gzip=thunar.desktop;' >$HOME/.config/mimeapps.list
 
 function miscelanious_install() {
   echo -e "\e[31mInstalling miscelanious\e[0m"
-  $USE_SUDO apt install -y duf gdu dos2unix rclone zoxide htop net-tools tree lsd ncurses-utils
+  $USE_SUDO apt install -y duf gdu dos2unix rclone zoxide htop net-tools tree lsd
 
   export INPUTRC_LOCATION=/etc/inputrc
   if [[ "$TERMUX" == "true" ]]; then
     export INPUTRC_LOCATION=$PREFIX/etc/inputrc
-    apt install -y which apache2 # apache2 => needed for htpasswd for argocd bcrypt
+    apt install -y which ncurses-utils apache2 # apache2 => needed for htpasswd for argocd bcrypt
     cat $HOME/.termux/font.ttf >/dev/null || (wget https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mv -f fonts/JetBrainsMonoNerdFont-Regular.ttf $HOME/.termux/font.ttf && rm -rf fonts JetBrainsMono.zip)
   else
-    apt install -y iotop dropbear bind9-dnsutils net-tools sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
+    $USE_SUDO apt install -y iotop dropbear bind9-dnsutils net-tools sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
   fi
 
   $USE_SUDO bash -c "echo 'set completion-ignore-case On' >> $INPUTRC_LOCATION"
@@ -1597,13 +1600,7 @@ alias cd=z"
   add_to_profile lsd 'alias ls=lsd
 alias ll="lsd -l"'
 
-  if [[ "$TERMUX" == "true" ]]; then
-    add_to_profile grep "alias grep='grep -iIHrn --color=always'
-alias _grep=$PREFIX/bin/grep"
-  else
-    add_to_profile grep "alias grep='grep -iIHrn --color=always'
-alias _grep=$PREFIX/usr/bin/grep"
-  fi
+  add_to_profile grep "alias grepf='grep -HIirn --color=always'"
 
   add_to_profile git 'git config --global core.autocrlf false
 git config --global core.eol lf
@@ -1713,19 +1710,19 @@ sshd' >boot/start.sh
 
 install_tools() {
   prepare
-  miscelanious_install
-  go_install
-  neovim_install
-  linux_desktop_install
-  bitwarden_install
-  terraform_install
-  yq_install
-  kustomize_install
-  helm_install
-  kubectl_install
-  oc_install
+  # miscelanious_install
+  #go_install
+  # neovim_install
+  # linux_desktop_install
+  # bitwarden_install
+  # terraform_install
+  # yq_install
+  # kustomize_install
+  # helm_install
+  # kubectl_install
+  # oc_install
   krew_install
-  kubectx_install
+  # kubectx_install
   netshoot_install
   k9s_install
   kubecolor_install
@@ -1735,15 +1732,15 @@ install_tools() {
   kyverno_install
   mc_install
   ccat_install
-  talosctl_install
+  # talosctl_install
   python_install
   speedtest_install
   operator_sdk_install
   argocd_install
   virtctl_install
-  chatgpt_install
-  gemini_install
-  codex_install
+  # chatgpt_install
+  # gemini_install
+  # codex_install
   vault_install
 }
 
