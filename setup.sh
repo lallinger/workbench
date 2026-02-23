@@ -46,8 +46,8 @@ function proxy() {
 export http_proxy=$HTTP_PROXY
 export HTTP_PROXY=$HTTP_PROXY
 export HTTPS_PROXY=$HTTP_PROXY"
-    echo "Acquire::http::Proxy \"$HTTP_PROXY\";
-Acquire::https::Proxy \"$HTTP_PROXY\";" >/etc/apt/apt.conf
+    $USE_SUDO echo "Acquire::http::Proxy \"$HTTP_PROXY\";
+Acquire::https::Proxy \"$HTTP_PROXY\";" | $USE_SUDO tee /etc/apt/apt.conf
   fi
 }
 
