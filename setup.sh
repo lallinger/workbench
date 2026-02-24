@@ -98,7 +98,10 @@ alias tfd="$PROOT_DNS_CERTS terraform destroy"
 alias tfda="$PROOT_DNS_CERTS terraform destroy -auto-approve"'"
 export PASSWORD=\$(\$PROOT_DNS_CERTS bws secret list | yq e '.[] | select(.key == \"password\") | .value')
 export TF_VAR_password=\$PASSWORD
-export TF_VAR_bitwarden_access_token=\$BWS_ACCESS_TOKEN"
+export TF_VAR_bitwarden_access_token=\$BWS_ACCESS_TOKEN
+export TF_VAR_home=$HOME
+export TF_VAR_prefix=$PREFIX
+export TF_VAR_portainer_endpoint=\$TF_VAR_portainer_endpoint" # -> set via .secure_vars
   else
     add_to_profile terraform 'complete -C /usr/bin/terraform tf
 complete -C /usr/bin/terraform terraform
@@ -111,7 +114,8 @@ alias tfd="terraform destroy"
 alias tfda="terraform destroy -auto-approve"'"
 export PASSWORD=\$(bws secret list | yq e '.[] | select(.key == \"password\") | .value')
 export TF_VAR_password=\$PASSWORD
-export TF_VAR_bitwarden_access_token=\$BWS_ACCESS_TOKEN"
+export TF_VAR_bitwarden_access_token=\$BWS_ACCESS_TOKEN
+export TF_VAR_portainer_endpoint=\$TF_VAR_portainer_endpoint" # -> set via .secure_vars
   fi
 
   terraform --version
@@ -121,10 +125,10 @@ function kustomize_install() {
   echo -e "\e[31mInstalling kustomize\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    VERSION=$(curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases | jq -r '[.[] | select(.prerelease == false)] | [.[] | select(.tag_name | contains("kustomize"))] | .[0].tag_name')
+    TAG=$(curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases | jq -r '[.[] | select(.prerelease == false)] | [.[] | select(.tag_name | contains("kustomize"))] | .[0].tag_name')
     git clone https://github.com/kubernetes-sigs/kustomize.git
     pushd kustomize
-    git checkout $VERSION
+    git checkout $TAG
     make kustomize
     popd
     rm -rf kustomize
@@ -452,7 +456,7 @@ function go_install() {
     rm -rf "$tmpdir"
   fi
 
-  add_to_profile go 'export PATH="$PATH:'$GO_PATH'/bin"'
+  add_to_profile go 'export PATH="$PATH:'$GO_PATH'"'
   export PATH="$PATH:$GO_PATH/bin"
   go version
 }
