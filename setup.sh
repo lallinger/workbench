@@ -87,16 +87,22 @@ function terraform_install() {
   terraform -install-autocomplete || echo "probably already added terraform autoinstall"
 
   if [[ "$TERMUX" == "true" ]]; then
-    add_to_profile terraform 'complete -C /usr/bin/terraform tf
-complete -C /usr/bin/terraform terraform
-alias tf="$PROOT_DNS_CERTS terraform"
-alias tfi="$PROOT_DNS_CERTS terraform init"
-alias tfp="$PROOT_DNS_CERTS terraform plan"
-alias tfa="$PROOT_DNS_CERTS terraform apply"
-alias tfaa="$PROOT_DNS_CERTS terraform apply -auto-approve"
-alias tfd="$PROOT_DNS_CERTS terraform destroy"
-alias tfda="$PROOT_DNS_CERTS terraform destroy -auto-approve"'"
-export PASSWORD=\$(\$PROOT_DNS_CERTS bws secret list | yq e '.[] | select(.key == \"password\") | .value')
+    pushd $PREFIX/usr/bin
+    mv terraform _terraform
+    echo "#!$PREFIX/bin/bash
+$PROOT_DNS_CERTS $PREFIX/bin/bash/_terraform $@" >terraform
+    chmod +x terraform
+    popd
+    add_to_profile terraform 'complete -C $PREFIX/usr/bin/terraform tf
+complete -C $PREFIX/usr/bin/terraform terraform
+alias tf="terraform"
+alias tfi="terraform init"
+alias tfp="terraform plan"
+alias tfa="terraform apply"
+alias tfaa="terraform apply -auto-approve"
+alias tfd="terraform destroy"
+alias tfda="terraform destroy -auto-approve"'"
+export PASSWORD=\$(bws secret list | yq e '.[] | select(.key == \"password\") | .value')
 export TF_VAR_password=\$PASSWORD
 export TF_VAR_bitwarden_access_token=\$BWS_ACCESS_TOKEN
 export TF_VAR_home=$HOME
@@ -1241,23 +1247,13 @@ function chatgpt_install() {
   chatgpt completion bash >completion_chatgpt
   $USE_SUDO mv -f completion_chatgpt $COMPLETION_FOLDER/chatgpt
 
-  if [[ "$TERMUX" == "true" ]]; then
-    add_to_profile chatgpt "source $COMPLETION_FOLDER/chatgpt
-alias c=chatgpt
-complete -C $BIN_PATH/chatgpt c
-export OPENAI_MODEL=gpt-5-mini
-export OPENAI_TRACK_TOKEN_USAGE=true
-export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'
-export OPENAI_API_KEY=\$(\$PROOT_DNS_CERTS bws secret list | yq e '.[] | select(.key == \"openai-api-key\") | .value')"
-  else
-    add_to_profile chatgpt "source $COMPLETION_FOLDER/chatgpt
+  add_to_profile chatgpt "source $COMPLETION_FOLDER/chatgpt
 alias c=chatgpt
 complete -C $BIN_PATH/chatgpt c
 export OPENAI_MODEL=gpt-5-mini
 export OPENAI_TRACK_TOKEN_USAGE=true
 export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'
 export OPENAI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"openai-api-key\") | .value')"
-  fi
   chatgpt --version
 }
 
@@ -1266,14 +1262,11 @@ function gemini_install() {
 
   if [[ "$TERMUX" == "true" ]]; then
     mkdir $HOME/.gyp && echo "{'variables':{'android_ndk_path':''}}" >$HOME/.gyp/include.gypi
-    add_to_profile gemini 'alias g=gemini
-alias gi="gemini -i"'"
-export GEMINI_API_KEY=\$(\$PROOT_DNS_CERTS bws secret list | yq e '.[] | select(.key == \"gemini-api-key\") | .value')"
-  else
-    add_to_profile gemini 'alias g=gemini
+  fi
+
+  add_to_profile gemini 'alias g=gemini
   alias gi="gemini -i"'"
 export GEMINI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"gemini-api-key\") | .value')"
-  fi
 
   $USE_SUDO npm install -g @google/gemini-cli
 
@@ -1359,14 +1352,15 @@ function bitwarden_install() {
   $USE_SUDO mv -f completion_bitwarden $COMPLETION_FOLDER/bitwarden
 
   if [[ "$TERMUX" == "true" ]]; then
-    add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
-source $HOME/.secure_vars
-alias bws=\"\$PROOT_DNS_CERTS $BIN_PATH/bws\""
-    alias bws="$PROOT_DNS_CERTS bws"
-  else
-    add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
-source $HOME/.secure_vars"
+    pushd $BIN_PATH
+    mv bws _bws
+    echo "#!$PREFIX/bin/bash
+$PROOT_DNS_CERTS $BIN_PATH/_bws $@" >bws
+    chmod +x bws
+    popd
   fi
+  add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
+source $HOME/.secure_vars"
 
   touch $HOME/.secure_vars
   chmod 600 $HOME/.secure_vars
