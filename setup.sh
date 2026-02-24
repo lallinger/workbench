@@ -87,14 +87,14 @@ function terraform_install() {
   terraform -install-autocomplete || echo "probably already added terraform autoinstall"
 
   if [[ "$TERMUX" == "true" ]]; then
-    pushd $PREFIX/usr/bin
+    pushd $PREFIX/bin
     mv terraform _terraform
     echo "#!$PREFIX/bin/bash
-$PROOT_DNS_CERTS $PREFIX/bin/bash/_terraform $@" >terraform
+$PROOT_DNS_CERTS $PREFIX/bin/_terraform \$@" >terraform
     chmod +x terraform
     popd
-    add_to_profile terraform 'complete -C $PREFIX/usr/bin/terraform tf
-complete -C $PREFIX/usr/bin/terraform terraform
+    add_to_profile terraform 'complete -C $PREFIX/bin/terraform tf
+complete -C $PREFIX/bin/terraform terraform
 alias tf="terraform"
 alias tfi="terraform init"
 alias tfp="terraform plan"
@@ -349,8 +349,8 @@ function kubectx_install() {
     "$KREW_BIN" install ns
   fi
 
-  add_to_profile kubectx 'alias kctx="kubectlctx"
-alias kns="kubectlns"'
+  add_to_profile kubectx 'alias kctx="kubectx"
+alias kns="kubens"'
   kubectx --help
   kubens --help
 }
@@ -1355,7 +1355,7 @@ function bitwarden_install() {
     pushd $BIN_PATH
     mv bws _bws
     echo "#!$PREFIX/bin/bash
-$PROOT_DNS_CERTS $BIN_PATH/_bws $@" >bws
+$PROOT_DNS_CERTS $BIN_PATH/_bws \$@" >bws
     chmod +x bws
     popd
   fi
