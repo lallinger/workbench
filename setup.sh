@@ -1714,19 +1714,19 @@ sshd' >boot/start.sh
 
 install_tools() {
   prepare
-  # miscelanious_install
-  #go_install
-  # neovim_install
-  # linux_desktop_install
-  # bitwarden_install
-  # terraform_install
-  # yq_install
-  # kustomize_install
-  # helm_install
-  # kubectl_install
-  # oc_install
+  miscelanious_install
+  go_install
+  neovim_install
+  linux_desktop_install
+  bitwarden_install
+  terraform_install
+  yq_install
+  kustomize_install
+  helm_install
+  kubectl_install
+  oc_install
   krew_install
-  # kubectx_install
+  kubectx_install
   netshoot_install
   k9s_install
   kubecolor_install
@@ -1736,15 +1736,15 @@ install_tools() {
   kyverno_install
   mc_install
   ccat_install
-  # talosctl_install
+  talosctl_install
   python_install
   speedtest_install
   operator_sdk_install
   argocd_install
   virtctl_install
-  # chatgpt_install
-  # gemini_install
-  # codex_install
+  chatgpt_install
+  gemini_install
+  codex_install
   vault_install
 }
 
