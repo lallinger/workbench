@@ -500,7 +500,7 @@ function go_install() {
   go version
 }
 
-function kubecolor_installt() {
+function kubecolor_install() {
   echo -e "\e[31mInstalling kubecolor\e[0m"
 
   go install github.com/kubecolor/kubecolor@latest
