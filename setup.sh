@@ -356,11 +356,7 @@ function krew_install() {
 function kubectx_install() {
   echo -e "\e[31mInstalling kubectx\e[0m"
   VERSION=$(curl -s https://api.github.com/repos/ahmetb/kubectx/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
-  INSTALLED_VERSION=""
-  if command -v kubectx >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(kubectx --version 2>/dev/null | awk '{print $2}' | sed 's/v//g')
-  fi
-  if [[ -n "$INSTALLED_VERSION" && "v$INSTALLED_VERSION" == "$VERSION" ]]; then
+  if [[ "v$(kubectx --version 2>/dev/null | awk '{print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
     echo "kubectx $VERSION already installed, skipping download"
   else
     git clone https://github.com/ahmetb/kubectx.git
@@ -1929,8 +1925,8 @@ install_tools() {
   #helm_install
   #kubectl_install
   # oc_install
-  krew_install
-  #kubectx_install
+  #krew_install
+  kubectx_install
   #netshoot_install
   #k9s_install
   #kubecolor_install
