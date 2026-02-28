@@ -506,19 +506,10 @@ function go_install() {
   go version
 }
 
-function kubecolor_install() {
+function kubecolor_installt() {
   echo -e "\e[31mInstalling kubecolor\e[0m"
 
-  VERSION=$(curl -s https://api.github.com/repos/kubecolor/kubecolor/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  INSTALLED_VERSION=""
-  if command -v kubecolor >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(kubecolor version --client 2>/dev/null | awk '{print $NF}' | sed 's/v//g')
-  fi
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
-    echo "kubecolor $VERSION already installed, skipping go install"
-  else
-    go install github.com/kubecolor/kubecolor@latest
-  fi
+  go install github.com/kubecolor/kubecolor@latest
 
   add_to_profile kubecolor "alias kc=kubecolor
   alias kubectl=kubecolor
@@ -554,11 +545,7 @@ function kubectl_neat_install() {
 
   if [[ "$TERMUX" == "true" ]]; then
     VERSION=$(curl -s https://api.github.com/repos/itaysk/kubectl-neat/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    INSTALLED_VERSION=""
-    if command -v kubectl-neat >/dev/null 2>&1; then
-      INSTALLED_VERSION=$(kubectl-neat version 2>/dev/null | awk '{print $NF}' | sed 's/v//g')
-    fi
-    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    if [[ "$(kubectl-neat version 2>/dev/null | awk '{print $NF}' | sed 's/v//g')" == "$VERSION" ]]; then
       echo "kubectl-neat $VERSION already installed, skipping download"
     else
       tmpdir="$(mktemp -d)"
@@ -607,20 +594,11 @@ function kyverno_install() {
 function istioctl_install() {
   echo -e "\e[31mInstalling istioctl\e[0m"
 
-  if [[ "$TERMUX" == "true" ]]; then
-    echo -e "\e[31mskipping\e[0m"
-    return
-  fi
-
   VERSION=$(curl -s https://api.github.com/repos/istio/istio/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  INSTALLED_VERSION=""
-  if command -v istioctl >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(istioctl version --remote=false 2>/dev/null | awk '/client version/ {print $3}' | sed 's/v//g')
-  fi
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+  if [[ "$(istioctl version --remote=false 2>/dev/null | awk '/client version/ {print $3}' | sed 's/v//g')" == "$VERSION" ]]; then
     echo "istioctl $VERSION already installed, skipping download"
   else
-    ISTIO_VERSION=$VERSION curl -L https://istio.io/downloadIstio | sh -
+    curl -L https://istio.io/downloadIstio | sh -
     $USE_SUDO mv istio-*/bin/istioctl $BIN_PATH
     rm -rf istio-*
   fi
@@ -1918,11 +1896,11 @@ install_tools() {
   #krew_install
   #kubectx_install
   #netshoot_install
-  k9s_install
+  #k9s_install
   #kubecolor_install
   #docker_install
   #kubectl_neat_install
-  #istioctl_install
+  istioctl_install
   #kyverno_install
   #mc_install
   #ccat_install
