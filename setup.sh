@@ -64,13 +64,13 @@ function prepare() {
   # proxy
   # rm -f /etc/apt/apt.conf.d/docker-clean # enable shell completion for apt in ubuntu docker image
   # add_to_profile xdg 'XDG_CONFIG_HOME="$HOME/.config"'
-  #
-  # export TZ=Europe/Berlin
-  # export DEBIAN_FRONTEND=noninteractive
-  #
-  # $USE_SUDO apt update
-  # $USE_SUDO apt install -y curl wget git bash-completion jq
-  # $USE_SUDO apt upgrade -y
+
+  export TZ=Europe/Berlin
+  export DEBIAN_FRONTEND=noninteractive
+
+  $USE_SUDO apt update
+  $USE_SUDO apt install -y curl wget git bash-completion jq
+  $USE_SUDO apt upgrade -y
 }
 
 function terraform_install() {
