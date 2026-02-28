@@ -77,7 +77,6 @@ function terraform_install() {
   echo -e "\e[31mInstalling terraform\e[0m"
 
   VERSION=$(curl -s https://api.github.com/repos/hashicorp/terraform/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-
   if [[ "$(terraform version | head -1 | awk '{print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
     echo "terraform $VERSION already installed, skipping download"
   else
@@ -1818,39 +1817,39 @@ function finish() {
 
 install_tools() {
   prepare
-  # miscelanious_install
-  # go_install
-  # neovim_install
-  # linux_desktop_install
-  #bitwarden_install
+  miscelanious_install
+  go_install
+  neovim_install
+  linux_desktop_install
+  bitwarden_install
   terraform_install
-  #yq_install
-  #kustomize_install
-  #helm_install
-  #kubectl_install
-  # oc_install
-  #krew_install
-  #kubectx_install
-  #netshoot_install
-  #k9s_install
-  #kubecolor_install
-  #docker_install
-  #kubectl_neat_install
-  #istioctl_install
-  #kyverno_install
-  #mc_install
-  #ccat_install
-  #talosctl_install
-  #python_install
-  #speedtest_install
-  #operator_sdk_install
-  #argocd_install
-  #virtctl_install
-  #chatgpt_install
-  #gemini_install
-  #codex_install
-  #vault_install
-  #finish
+  yq_install
+  kustomize_install
+  helm_install
+  kubectl_install
+  oc_install
+  krew_install
+  kubectx_install
+  netshoot_install
+  k9s_install
+  kubecolor_install
+  docker_install
+  kubectl_neat_install
+  istioctl_install
+  kyverno_install
+  mc_install
+  ccat_install
+  talosctl_install
+  python_install
+  speedtest_install
+  operator_sdk_install
+  argocd_install
+  virtctl_install
+  chatgpt_install
+  gemini_install
+  codex_install
+  vault_install
+  finish
 }
 
 install_tools
