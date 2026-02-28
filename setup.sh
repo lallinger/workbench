@@ -283,7 +283,7 @@ complete -F __start_kubectl kcns
 alias kcns="kubectl create ns"
 complete -F __start_kubectl kng
 alias kng="kubectl neat get"
-' >$HOME/.kubectl_aliases # somehow completion only works when it's sourced last. kubectl section gets added in miscelanious_install
+' >$HOME/.kubectl_aliases # somehow completion only works when it's sourced last
 
   kubectl version --client
 }
@@ -462,7 +462,7 @@ function go_install() {
     rm -rf "$tmpdir"
   fi
 
-  add_to_profile go 'export PATH="$PATH:'$GO_PATH'"'
+  add_to_profile go 'export PATH="$PATH:'$GO_PATH/bin'"'
   export PATH="$PATH:$GO_PATH/bin"
   go version
 }
@@ -824,22 +824,18 @@ function neovim_install() {
 }' >$HOME/.config/nvim/lua/plugins/mason.lua
   fi
 
-  echo '{
-  "extras": [
-    "lazyvim.plugins.extras.lang.docker",
-    "lazyvim.plugins.extras.lang.git",
-    "lazyvim.plugins.extras.lang.go",
-    "lazyvim.plugins.extras.lang.helm",
-    "lazyvim.plugins.extras.lang.json",
-    "lazyvim.plugins.extras.lang.markdown",
-    "lazyvim.plugins.extras.lang.sql",
-    "lazyvim.plugins.extras.lang.terraform",
-    "lazyvim.plugins.extras.lang.toml",
-    "lazyvim.plugins.extras.lang.yaml"
-  ]
-}' >$HOME/.config/nvim/lazyvim.json
+  sed -i '/-- import\/override with your plugins/c\
+        { import = "lazyvim.plugins.extras.lang.docker" },\
+        { import = "lazyvim.plugins.extras.lang.git" },\
+        { import = "lazyvim.plugins.extras.lang.go" },\
+        { import = "lazyvim.plugins.extras.lang.helm" },\
+        { import = "lazyvim.plugins.extras.lang.json" },\
+        { import = "lazyvim.plugins.extras.lang.markdown" },\
+        { import = "lazyvim.plugins.extras.lang.sql" },\
+        { import = "lazyvim.plugins.extras.lang.terraform" },\
+        { import = "lazyvim.plugins.extras.lang.toml" },\
+        { import = "lazyvim.plugins.extras.lang.yaml" },' $HOME/.config/nvim/lua/config/lazy.lua
 
-  $USE_SUDO apt install -y fzf ripgrep nodejs npm
   $USE_SUDO_PROXY gem install neovim
 
   echo 'require("config.lazy")' >$HOME/.config/nvim/init.lua
@@ -1261,7 +1257,7 @@ function gemini_install() {
   echo -e "\e[31mInstalling gemini\e[0m"
 
   if [[ "$TERMUX" == "true" ]]; then
-    mkdir $HOME/.gyp && echo "{'variables':{'android_ndk_path':''}}" >$HOME/.gyp/include.gypi
+    mkdir -p $HOME/.gyp && echo "{'variables':{'android_ndk_path':''}}" >$HOME/.gyp/include.gypi
   fi
 
   add_to_profile gemini 'alias g=gemini
@@ -1313,7 +1309,7 @@ function vault_install() {
     git clone https://github.com/hashicorp/vault.git
     pushd vault
     git checkout v$VERSION
-    echo -e "\e[31mbuilding may take quite some time depending on your device!\e[0m"
+    echo -e "\e[31mbuilding vault may take quite some time depending on your device!\e[0m"
     make bootstrap || echo "ignore make bootstrap error"
     make
     mv -f bin/vault $BIN_PATH
@@ -1743,4 +1739,7 @@ install_tools() {
 }
 
 install_tools
+
+add_to_profile kubectl "source $HOME/.kubectl_aliases" # somehow completion only works when it's sourced last. kubectl section gets added in miscelanious_install
+
 echo -e "\e[31msetup.sh finished successfully! Run 'source $HOME/.bashrc' or open a new bash shell to start using!\e[0m"
