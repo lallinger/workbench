@@ -779,11 +779,7 @@ function virtctl_install() {
     kubectl krew install virt
   fi
 
-  INSTALLED_VERSION=""
-  if command -v virtctl >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(virtctl version --client 2>/dev/null | awk '/Client Version:/ {print $3}' | sed 's/v//g')
-  fi
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$(echo "$VERSION" | sed 's/v//g')" ]]; then
+  if [[ "$(virtctl version --client 2>/dev/null | sed -n 's/.*GitVersion:"\([^"]*\)".*/\1/p')" == "$VERSION" ]]; then
     echo "virtctl $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -1869,8 +1865,8 @@ install_tools() {
   #python_install
   #speedtest_install
   #operator_sdk_install
-  argocd_install
-  #virtctl_install
+  #argocd_install
+  virtctl_install
   #chatgpt_install
   #gemini_install
   #codex_install
