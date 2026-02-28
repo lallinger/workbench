@@ -575,7 +575,7 @@ function kyverno_install() {
     echo "kyverno $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
-    wget https://github.com/kyverno/kyverno/releases/download/v$VERSION/kyverno-cli_v$VERSION_linux_$OS_ARCH.tar.gz -O "$tmpdir/kyverno.tar.gz"
+    wget https://github.com/kyverno/kyverno/releases/download/v$VERSION/kyverno-cli-$VERSION.tar.gz -O "$tmpdir/kyverno.tar.gz"
     tar -xvf "$tmpdir/kyverno.tar.gz" -C "$tmpdir"
     $USE_SUDO mv "$tmpdir/kyverno" $BIN_PATH
     rm -rf "$tmpdir"
