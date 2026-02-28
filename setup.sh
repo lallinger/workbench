@@ -186,7 +186,7 @@ function kubectl_install() {
     apt install -y kubectl
   else
     VERSION=$(curl -LS https://dl.k8s.io/release/stable.txt)
-    if [[ "$(kubectl version --client --output=json 2>/dev/null | jq -r '.clientVersion.gitVersion' | sed 's/v//g')" == "$VERSION" ]]; then
+    if [[ "v$(kubectl version --client --output=json 2>/dev/null | jq -r '.clientVersion.gitVersion' | sed 's/v//g')" == "$VERSION" ]]; then
       echo "kubectl $VERSION already installed, skipping download"
     else
       tmpdir="$(mktemp -d)"
