@@ -751,12 +751,8 @@ function operator_sdk_install() {
 function argocd_install() {
   echo -e "\e[31mInstalling argocd\e[0m"
 
-  VERSION=$(curl -s https://api.github.com/repos/argoproj/argo-cd/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  INSTALLED_VERSION=""
-  if command -v argocd >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(argocd version --client --short 2>/dev/null | awk '{print $2}' | sed 's/v//g')
-  fi
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+  VERSION=$(curl -s https://api.github.com/repos/argoproj/argo-cd/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
+  if [[ "$(argocd version --client --short 2>/dev/null | awk '{print $2}' | sed 's/\+.*//')" == "$VERSION" ]]; then
     echo "argocd $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -1872,8 +1868,8 @@ install_tools() {
   #talosctl_install
   #python_install
   #speedtest_install
-  operator_sdk_install
-  #argocd_install
+  #operator_sdk_install
+  argocd_install
   #virtctl_install
   #chatgpt_install
   #gemini_install
