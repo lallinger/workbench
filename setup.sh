@@ -771,7 +771,7 @@ function argocd_install() {
 function virtctl_install() {
   echo -e "\e[31mInstalling virtctl\e[0m"
 
-  VERSION=$(curl https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt)
+  VERSION=$(curl -s https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt)
 
   if [[ "$TERMUX" == "true" ]]; then
     :
