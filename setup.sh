@@ -62,7 +62,6 @@ function prepare() {
   fi
 
   # proxy
-  # set -u
   # rm -f /etc/apt/apt.conf.d/docker-clean # enable shell completion for apt in ubuntu docker image
   # add_to_profile xdg 'XDG_CONFIG_HOME="$HOME/.config"'
   #
@@ -168,15 +167,10 @@ function helm_install() {
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y helm
   else
-    VERSION=$(curl -s https://api.github.com/repos/helm/helm/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    if [[ "$(helm version --short 2>/dev/null | sed -n 's/^v\([0-9.]*\).*/\1/p')" == "$VERSION" ]]; then
-      echo "helm $VERSION already installed, skipping download"
-    else
-      wget https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-      $USE_SUDO chmod +x get-helm-3
-      ./get-helm-3
-      rm get-helm-3
-    fi
+    wget https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    $USE_SUDO chmod +x get-helm-3
+    ./get-helm-3
+    rm get-helm-3
   fi
 
   helm completion bash >completion_helm
@@ -192,11 +186,7 @@ function kubectl_install() {
     apt install -y kubectl
   else
     VERSION=$(curl -LS https://dl.k8s.io/release/stable.txt)
-    INSTALLED_VERSION=""
-    if command -v kubectl >/dev/null 2>&1; then
-      INSTALLED_VERSION=$(kubectl version --client --output=json 2>/dev/null | jq -r '.clientVersion.gitVersion' | sed 's/v//g')
-    fi
-    if [[ -n "$INSTALLED_VERSION" && "v$INSTALLED_VERSION" == "$VERSION" ]]; then
+    if [[ "$(kubectl version --client --output=json 2>/dev/null | jq -r '.clientVersion.gitVersion' | sed 's/v//g')" == "$VERSION" ]]; then
       echo "kubectl $VERSION already installed, skipping download"
     else
       tmpdir="$(mktemp -d)"
@@ -1948,8 +1938,8 @@ install_tools() {
   #terraform_install
   #yq_install
   #kustomize_install
-  helm_install
-  #kubectl_install
+  #helm_install
+  kubectl_install
   #oc_install
   #krew_install
   #kubectx_install
