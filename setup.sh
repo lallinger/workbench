@@ -354,7 +354,6 @@ function kubectx_install() {
   # skip version check, seems to very rarely get updates but not releases..just use master as it's just a bash script
   git clone https://github.com/ahmetb/kubectx.git
   pushd kubectx
-  git checkout $VERSION
   $USE_SUDO mv -f kubectx $BIN_PATH
   $USE_SUDO mv -f kubens $BIN_PATH
   popd
