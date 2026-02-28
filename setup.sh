@@ -1391,7 +1391,7 @@ function codex_install() {
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y codex
   else
-    npm i -g @openai/codex
+    $USE_SUDO npm i -g @openai/codex
   fi
 
   codex completion bash >completion_codex
