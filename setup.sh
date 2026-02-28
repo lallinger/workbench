@@ -77,12 +77,8 @@ function terraform_install() {
   echo -e "\e[31mInstalling terraform\e[0m"
 
   VERSION=$(curl -s https://api.github.com/repos/hashicorp/terraform/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  INSTALLED_VERSION=""
-  if command -v terraform >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(terraform version | head -1 | awk '{print $2}' | sed 's/v//g')
-  fi
 
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+  if [[ "$(terraform version | head -1 | awk '{print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
     echo "terraform $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -1324,11 +1320,7 @@ function chatgpt_install() {
   echo -e "\e[31mInstalling chatgpt\e[0m"
 
   VERSION=$(curl -s https://api.github.com/repos/kardolus/chatgpt-cli/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  INSTALLED_VERSION=""
-  if command -v chatgpt >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(chatgpt --version 2>/dev/null | awk '{print $NF}' | sed 's/v//g')
-  fi
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+  if [[ "$(chatgpt --version 2>/dev/null | grep -oP '(?<=v)[\d.]+')" == "$VERSION" ]]; then
     echo "chatgpt $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -1415,15 +1407,10 @@ function vault_install() {
   echo -e "\e[31mInstalling vault\e[0m"
 
   VERSION=$(curl -s https://api.github.com/repos/hashicorp/vault/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  INSTALLED_VERSION=""
-  if command -v vault >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(vault version 2>/dev/null | awk '{print $2}' | sed 's/v//g')
-  fi
-
-  if [[ "$TERMUX" == "true" ]]; then
-    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
-      echo "vault $VERSION already installed, skipping build"
-    else
+  if [[ "$(vault version 2>/dev/null | awk '{print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
+    echo "vault $VERSION already installed, skipping build"
+  else
+    if [[ "$TERMUX" == "true" ]]; then
       git clone https://github.com/hashicorp/vault.git
       pushd vault
       git checkout v$VERSION
@@ -1433,10 +1420,6 @@ function vault_install() {
       mv -f bin/vault $BIN_PATH
       popd
       rm -rf vault
-    fi
-  else
-    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
-      echo "vault $VERSION already installed, skipping download"
     else
       tmpdir="$(mktemp -d)"
       wget https://releases.hashicorp.com/vault/$VERSION/vault_${VERSION}_linux_${PKG_ARCH}.zip -O "$tmpdir/vault.zip"
@@ -1454,10 +1437,6 @@ function bitwarden_install() {
   echo -e "\e[31mInstalling bitwarden\e[0m"
 
   VERSION=$(curl -s https://api.github.com/repos/bitwarden/sdk-sm/releases | jq -r '.[] | select(.tag_name | test("bws"; "i")) | .tag_name' | head -1 | sed 's/bws-v//g')
-  INSTALLED_VERSION=""
-  if command -v bws >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(bws --version 2>/dev/null | awk '{print $2}' | sed 's/v//g')
-  fi
 
   if [[ "$TERMUX" == "true" ]]; then
     export BWS_ARCH=musl
@@ -1465,7 +1444,7 @@ function bitwarden_install() {
     export BWS_ARCH=gnu
   fi
 
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+  if [[ "$(bws --version 2>/dev/null | awk '{print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
     echo "bitwarden (bws) $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -1844,7 +1823,7 @@ install_tools() {
   # neovim_install
   # linux_desktop_install
   #bitwarden_install
-  #terraform_install
+  terraform_install
   #yq_install
   #kustomize_install
   #helm_install
@@ -1866,7 +1845,7 @@ install_tools() {
   #speedtest_install
   #operator_sdk_install
   #argocd_install
-  virtctl_install
+  #virtctl_install
   #chatgpt_install
   #gemini_install
   #codex_install
