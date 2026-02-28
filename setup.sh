@@ -57,20 +57,21 @@ function prepare() {
   termux-info && export TERMUX=true || export TERMUX=false
   echo TERMUX enabled: $TERMUX
   if [[ "$TERMUX" == "true" ]]; then
-    termux_install
+    :
+    # termux_install
   fi
 
-  proxy
-  set -u
-  rm -f /etc/apt/apt.conf.d/docker-clean # enable shell completion for apt in ubuntu docker image
-  add_to_profile xdg 'XDG_CONFIG_HOME="$HOME/.config"'
-
-  export TZ=Europe/Berlin
-  export DEBIAN_FRONTEND=noninteractive
-
-  $USE_SUDO apt update
-  $USE_SUDO apt install -y curl wget git bash-completion jq
-  $USE_SUDO apt upgrade -y
+  # proxy
+  # set -u
+  # rm -f /etc/apt/apt.conf.d/docker-clean # enable shell completion for apt in ubuntu docker image
+  # add_to_profile xdg 'XDG_CONFIG_HOME="$HOME/.config"'
+  #
+  # export TZ=Europe/Berlin
+  # export DEBIAN_FRONTEND=noninteractive
+  #
+  # $USE_SUDO apt update
+  # $USE_SUDO apt install -y curl wget git bash-completion jq
+  # $USE_SUDO apt upgrade -y
 }
 
 function terraform_install() {
@@ -138,36 +139,22 @@ export TF_VAR_portainer_endpoint=\$TF_VAR_portainer_endpoint" # -> set via .secu
 function kustomize_install() {
   echo -e "\e[31mInstalling kustomize\e[0m"
 
-  if [[ "$TERMUX" == "true" ]]; then
-    TAG=$(curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases | jq -r '[.[] | select(.prerelease == false)] | [.[] | select(.tag_name | contains("kustomize"))] | .[0].tag_name')
-    INSTALLED_VERSION=""
-    if command -v kustomize >/dev/null 2>&1; then
-      INSTALLED_VERSION=$(kustomize version --short 2>/dev/null | sed -n 's/^v//p')
-    fi
-    if [[ -n "$INSTALLED_VERSION" && "v$INSTALLED_VERSION" == "$TAG" ]]; then
-      echo "kustomize $TAG already installed, skipping build"
-    else
+  TAG=$(curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases | jq -r '[.[] | select(.prerelease == false)] | [.[] | select(.tag_name | contains("kustomize"))] | .[0].tag_name')
+  if [[ "$(kustomize version --short 2>/dev/null | grep -o 'kustomize/v[0-9.]*')" == "$TAG" ]]; then
+    echo "kustomize $TAG already installed, skipping download"
+  else
+    if [[ "$TERMUX" == "true" ]]; then
       git clone https://github.com/kubernetes-sigs/kustomize.git
       pushd kustomize
       git checkout $TAG
       make kustomize
       popd
       rm -rf kustomize
-    fi
-  else
-    TAG=$(curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases | jq -r '[.[] | select(.prerelease == false)] | [.[] | select(.tag_name | contains("kustomize"))] | .[0].tag_name')
-    INSTALLED_VERSION=""
-    if command -v kustomize >/dev/null 2>&1; then
-      INSTALLED_VERSION=$(kustomize version --short 2>/dev/null | sed -n 's/^v//p')
-    fi
-    if [[ -n "$INSTALLED_VERSION" && "v$INSTALLED_VERSION" == "$TAG" ]]; then
-      echo "kustomize $TAG already installed, skipping download"
     else
       curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -
       $USE_SUDO mv -f kustomize $BIN_PATH
     fi
   fi
-
   kustomize completion bash >completion_kustomize
   $USE_SUDO mv -f completion_kustomize $COMPLETION_FOLDER/kustomize
   add_to_profile kustomize 'source'" $COMPLETION_FOLDER/kustomize"' 
@@ -182,11 +169,7 @@ function helm_install() {
     apt install -y helm
   else
     VERSION=$(curl -s https://api.github.com/repos/helm/helm/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    INSTALLED_VERSION=""
-    if command -v helm >/dev/null 2>&1; then
-      INSTALLED_VERSION=$(helm version --short 2>/dev/null | sed -n 's/^v\([0-9.]*\).*/\1/p')
-    fi
-    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    if [[ "$(helm version --short 2>/dev/null | sed -n 's/^v\([0-9.]*\).*/\1/p')" == "$VERSION" ]]; then
       echo "helm $VERSION already installed, skipping download"
     else
       wget https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
@@ -711,11 +694,7 @@ function yq_install() {
   echo -e "\e[31mInstalling yq\e[0m"
 
   VERSION=$(curl -s https://api.github.com/repos/mikefarah/yq/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  INSTALLED_VERSION=""
-  if command -v yq >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(yq --version 2>/dev/null | awk '{print $NF}' | sed 's/v//g')
-  fi
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+  if [[ "$(yq --version 2>/dev/null | awk '{print $NF}' | sed 's/v//g')" == "$VERSION" ]]; then
     echo "yq $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -925,6 +904,7 @@ function neovim_install() {
   echo -e "\e[31mInstalling neovim\e[0m"
 
   export USE_SUDO_PROXY="$USE_SUDO"
+  $USE_SUDO apt install -y npm
 
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y ruby neovim lua54 luarocks lua-language-server rust
@@ -1031,6 +1011,8 @@ function neovim_install() {
     end,
   },
 }' >$HOME/.config/nvim/lua/plugins/mason.lua
+
+    echo 'vim.opt.smoothscroll = false' >$HOME/.config/nvim/lua/config/options.lu
   fi
 
   sed -i '/-- import\/override with your plugins/c\
@@ -1952,44 +1934,47 @@ sshd' >boot/start.sh
   popd
 }
 
+function finish() {
+  add_to_profile kubectl "source $HOME/.kubectl_aliases" # somehow completion only works when it's sourced last. kubectl section gets added in miscelanious_install
+}
+
 install_tools() {
   prepare
-  miscelanious_install
-  go_install
-  neovim_install
-  linux_desktop_install
-  bitwarden_install
-  terraform_install
-  yq_install
-  kustomize_install
+  # miscelanious_install
+  # go_install
+  # neovim_install
+  # linux_desktop_install
+  #bitwarden_install
+  #terraform_install
+  #yq_install
+  #kustomize_install
   helm_install
-  kubectl_install
-  oc_install
-  krew_install
-  kubectx_install
-  netshoot_install
-  k9s_install
-  kubecolor_install
-  docker_install
-  kubectl_neat_install
-  istioctl_install
-  kyverno_install
-  mc_install
-  ccat_install
-  talosctl_install
-  python_install
-  speedtest_install
-  operator_sdk_install
-  argocd_install
-  virtctl_install
-  chatgpt_install
-  gemini_install
-  codex_install
-  vault_install
+  #kubectl_install
+  #oc_install
+  #krew_install
+  #kubectx_install
+  #netshoot_install
+  #k9s_install
+  #kubecolor_install
+  #docker_install
+  #kubectl_neat_install
+  #istioctl_install
+  #kyverno_install
+  #mc_install
+  #ccat_install
+  #talosctl_install
+  #python_install
+  #speedtest_install
+  #operator_sdk_install
+  #argocd_install
+  #virtctl_install
+  #chatgpt_install
+  #gemini_install
+  #codex_install
+  #vault_install
+  #finish
 }
 
 install_tools
-
-add_to_profile kubectl "source $HOME/.kubectl_aliases" # somehow completion only works when it's sourced last. kubectl section gets added in miscelanious_install
 
 echo -e "\e[31msetup.sh finished successfully! Run 'source $HOME/.bashrc' or open a new bash shell to start using!\e[0m"
