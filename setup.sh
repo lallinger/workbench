@@ -165,7 +165,7 @@ function helm_install() {
     wget https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
     $USE_SUDO chmod +x get-helm-3
     ./get-helm-3
-    rm get-helm-3
+    $USE_SUDO rm get-helm-3
   fi
 
   helm completion bash >completion_helm
