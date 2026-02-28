@@ -571,11 +571,7 @@ function kyverno_install() {
   fi
 
   VERSION=$(curl -s https://api.github.com/repos/kyverno/kyverno/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  INSTALLED_VERSION=""
-  if command -v kyverno >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(kyverno version 2>/dev/null | awk '/Version:/ {print $2}' | sed 's/v//g')
-  fi
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+  if [[ "$(kyverno version 2>/dev/null | awk '/Version:/ {print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
     echo "kyverno $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -1900,8 +1896,8 @@ install_tools() {
   #kubecolor_install
   #docker_install
   #kubectl_neat_install
-  istioctl_install
-  #kyverno_install
+  #istioctl_install
+  kyverno_install
   #mc_install
   #ccat_install
   #talosctl_install
