@@ -1700,6 +1700,8 @@ alias cd=z"
 
   add_to_profile gdu 'alias du=gdu'
 
+  add_to_profile icanhazip 'alias icanhazip="curl icanhazip.com"'
+
   add_to_profile duf 'alias df=duf'
 
   add_to_profile lsd 'alias ls=lsd
