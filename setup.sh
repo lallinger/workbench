@@ -311,16 +311,12 @@ function oc_install() {
     return
   fi
 
-  VERSION=$(curl -s https://api.github.com/repos/openshift/oc/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  if [[ "$(oc version --client 2>/dev/null | awk '/Client Version:/ {print $3}' | sed 's/v//g')" == "$VERSION" ]]; then
-    echo "oc $VERSION already installed, skipping download"
-  else
-    tmpdir="$(mktemp -d)"
-    wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz -O "$tmpdir/oc.tar.gz"
-    tar -xvf "$tmpdir/oc.tar.gz" -C "$tmpdir"
-    $USE_SUDO mv "$tmpdir/oc" $BIN_PATH
-    rm -rf "$tmpdir"
-  fi
+  # version check pain in the ass...
+  tmpdir="$(mktemp -d)"
+  wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz -O "$tmpdir/oc.tar.gz"
+  tar -xvf "$tmpdir/oc.tar.gz" -C "$tmpdir"
+  $USE_SUDO mv "$tmpdir/oc" $BIN_PATH
+  rm -rf "$tmpdir"
 
   oc completion bash >completion_oc
   $USE_SUDO mv -f completion_oc $COMPLETION_FOLDER/oc
@@ -338,11 +334,7 @@ function krew_install() {
   fi
 
   VERSION=$(curl -s https://api.github.com/repos/kubernetes-sigs/krew/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  INSTALLED_VERSION=""
-  if command -v kubectl-krew >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(kubectl krew version 2>/dev/null | awk '/GitTag:/ {print $2}' | sed 's/v//g')
-  fi
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+  if [[ "$(kubectl krew version 2>/dev/null | awk '/GitTag:/ {print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
     echo "krew $VERSION already installed, skipping download"
   else
     OS="$(uname | tr '[:upper:]' '[:lower:]')"
@@ -1936,8 +1928,8 @@ install_tools() {
   #kustomize_install
   #helm_install
   #kubectl_install
-  oc_install
-  #krew_install
+  # oc_install
+  krew_install
   #kubectx_install
   #netshoot_install
   #k9s_install
