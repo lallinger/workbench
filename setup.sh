@@ -312,11 +312,7 @@ function oc_install() {
   fi
 
   VERSION=$(curl -s https://api.github.com/repos/openshift/oc/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  INSTALLED_VERSION=""
-  if command -v oc >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(oc version --client 2>/dev/null | awk '/Client Version:/ {print $3}' | sed 's/v//g')
-  fi
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+  if [[ "$(oc version --client 2>/dev/null | awk '/Client Version:/ {print $3}' | sed 's/v//g')" == "$VERSION" ]]; then
     echo "oc $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -1939,8 +1935,8 @@ install_tools() {
   #yq_install
   #kustomize_install
   #helm_install
-  kubectl_install
-  #oc_install
+  #kubectl_install
+  oc_install
   #krew_install
   #kubectx_install
   #netshoot_install
