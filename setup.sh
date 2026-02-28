@@ -334,7 +334,7 @@ function krew_install() {
   fi
 
   VERSION=$(curl -s https://api.github.com/repos/kubernetes-sigs/krew/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  if [[ "$(kubectl krew version 2>/dev/null | awk '/GitTag:/ {print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
+  if [[ "$(find "$HOME" -iname krew -type f 2>/dev/null | head -1) version 2>/dev/null | sed -n 's/GitTag[[:space:]]*v//p')" == "$VERSION" ]]; then
     echo "krew $VERSION already installed, skipping download"
   else
     OS="$(uname | tr '[:upper:]' '[:lower:]')"
