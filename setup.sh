@@ -58,7 +58,7 @@ function prepare() {
   echo TERMUX enabled: $TERMUX
   if [[ "$TERMUX" == "true" ]]; then
     :
-    # termux_install
+    termux_install
   fi
 
   # proxy
@@ -355,18 +355,16 @@ function krew_install() {
 
 function kubectx_install() {
   echo -e "\e[31mInstalling kubectx\e[0m"
-  VERSION=$(curl -s https://api.github.com/repos/ahmetb/kubectx/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
-  if [[ "v$(kubectx --version 2>/dev/null | awk '{print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
-    echo "kubectx $VERSION already installed, skipping download"
-  else
-    git clone https://github.com/ahmetb/kubectx.git
-    pushd kubectx
-    git checkout $VERSION
-    $USE_SUDO mv -f kubectx $BIN_PATH
-    $USE_SUDO mv -f kubens $BIN_PATH
-    popd
-    rm -rf kubectx
-  fi
+
+  # skip version check, seems to very rarely get updates but not releases..just use master as it's just a bash script
+  git clone https://github.com/ahmetb/kubectx.git
+  pushd kubectx
+  git checkout $VERSION
+  $USE_SUDO mv -f kubectx $BIN_PATH
+  $USE_SUDO mv -f kubens $BIN_PATH
+  popd
+  rm -rf kubectx
+
   if [[ "$TERMUX" == "true" ]]; then
     :
   else
@@ -382,25 +380,21 @@ alias kns="kubens"'
 
 function netshoot_install() {
   echo -e "\e[31mInstalling netshoot\e[0m"
-  VERSION=$(curl -s https://api.github.com/repos/nilic/kubectl-netshoot/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  INSTALLED_VERSION=""
+
   if command -v netshoot >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(netshoot version 2>/dev/null | awk '{print $NF}' | sed 's/v//g')
-  fi
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
     echo "netshoot $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
-    wget https://github.com/nilic/kubectl-netshoot/releases/download/v${VERSION}/kubectl-netshoot_v${VERSION}_linux_$PKG_ARCH.tar.gz -O "$tmpdir/netshoot.tar.gz"
+    wget https://github.com/nilic/kubectl-netshoot/releases/download/v0.1.0/kubectl-netshoot_v0.1.0_linux_$PKG_ARCH.tar.gz -O "$tmpdir/netshoot.tar.gz"
     tar -xvf "$tmpdir/netshoot.tar.gz" -C "$tmpdir"
     $USE_SUDO mv -f "$tmpdir/kubectl-netshoot" $BIN_PATH/netshoot
     rm -rf "$tmpdir"
-  fi
-  if [[ "$TERMUX" == "true" ]]; then
-    :
-  else
-    "$KREW_BIN" index add netshoot https://github.com/nilic/kubectl-netshoot.git || echo "index already added"
-    "$KREW_BIN" install netshoot/netshoot
+    if [[ "$TERMUX" == "true" ]]; then
+      :
+    else
+      "$KREW_BIN" index add netshoot https://github.com/nilic/kubectl-netshoot.git || echo "index already added"
+      "$KREW_BIN" install netshoot/netshoot
+    fi
   fi
 
   netshoot completion bash >completion_netshoot
@@ -417,11 +411,7 @@ function k9s_install() {
     apt install -y k9s
   else
     VERSION=$(curl -s https://api.github.com/repos/derailed/k9s/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    INSTALLED_VERSION=""
-    if command -v k9s >/dev/null 2>&1; then
-      INSTALLED_VERSION=$(k9s version 2>/dev/null | awk '/Version/ {print $2}' | sed 's/v//g')
-    fi
-    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    if [[ "$(k9s version 2>/dev/null | awk '/Version/ {print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
       echo "k9s $VERSION already installed, skipping download"
     else
       tmpdir="$(mktemp -d)"
@@ -1926,9 +1916,9 @@ install_tools() {
   #kubectl_install
   # oc_install
   #krew_install
-  kubectx_install
+  #kubectx_install
   #netshoot_install
-  #k9s_install
+  k9s_install
   #kubecolor_install
   #docker_install
   #kubectl_neat_install
