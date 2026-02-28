@@ -77,12 +77,20 @@ function terraform_install() {
   echo -e "\e[31mInstalling terraform\e[0m"
 
   VERSION=$(curl -s https://api.github.com/repos/hashicorp/terraform/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  INSTALLED_VERSION=""
+  if command -v terraform >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(terraform version | head -1 | awk '{print $2}' | sed 's/v//g')
+  fi
 
-  tmpdir="$(mktemp -d)"
-  wget https://releases.hashicorp.com/terraform/$VERSION/terraform_${VERSION}_linux_${PKG_ARCH}.zip -O "$tmpdir/terraform.zip"
-  unzip "$tmpdir/terraform.zip" -d "$tmpdir"
-  $USE_SUDO mv -f "$tmpdir/terraform" $BIN_PATH
-  rm -rf "$tmpdir"
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "terraform $VERSION already installed, skipping download"
+  else
+    tmpdir="$(mktemp -d)"
+    wget https://releases.hashicorp.com/terraform/$VERSION/terraform_${VERSION}_linux_${PKG_ARCH}.zip -O "$tmpdir/terraform.zip"
+    unzip "$tmpdir/terraform.zip" -d "$tmpdir"
+    $USE_SUDO mv -f "$tmpdir/terraform" $BIN_PATH
+    rm -rf "$tmpdir"
+  fi
 
   terraform -install-autocomplete || echo "probably already added terraform autoinstall"
 
@@ -132,15 +140,32 @@ function kustomize_install() {
 
   if [[ "$TERMUX" == "true" ]]; then
     TAG=$(curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases | jq -r '[.[] | select(.prerelease == false)] | [.[] | select(.tag_name | contains("kustomize"))] | .[0].tag_name')
-    git clone https://github.com/kubernetes-sigs/kustomize.git
-    pushd kustomize
-    git checkout $TAG
-    make kustomize
-    popd
-    rm -rf kustomize
+    INSTALLED_VERSION=""
+    if command -v kustomize >/dev/null 2>&1; then
+      INSTALLED_VERSION=$(kustomize version --short 2>/dev/null | sed -n 's/^v//p')
+    fi
+    if [[ -n "$INSTALLED_VERSION" && "v$INSTALLED_VERSION" == "$TAG" ]]; then
+      echo "kustomize $TAG already installed, skipping build"
+    else
+      git clone https://github.com/kubernetes-sigs/kustomize.git
+      pushd kustomize
+      git checkout $TAG
+      make kustomize
+      popd
+      rm -rf kustomize
+    fi
   else
-    curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -
-    $USE_SUDO mv -f kustomize $BIN_PATH
+    TAG=$(curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases | jq -r '[.[] | select(.prerelease == false)] | [.[] | select(.tag_name | contains("kustomize"))] | .[0].tag_name')
+    INSTALLED_VERSION=""
+    if command -v kustomize >/dev/null 2>&1; then
+      INSTALLED_VERSION=$(kustomize version --short 2>/dev/null | sed -n 's/^v//p')
+    fi
+    if [[ -n "$INSTALLED_VERSION" && "v$INSTALLED_VERSION" == "$TAG" ]]; then
+      echo "kustomize $TAG already installed, skipping download"
+    else
+      curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -
+      $USE_SUDO mv -f kustomize $BIN_PATH
+    fi
   fi
 
   kustomize completion bash >completion_kustomize
@@ -156,10 +181,19 @@ function helm_install() {
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y helm
   else
-    wget https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-    $USE_SUDO chmod +x get-helm-3
-    ./get-helm-3
-    rm get-helm-3
+    VERSION=$(curl -s https://api.github.com/repos/helm/helm/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+    INSTALLED_VERSION=""
+    if command -v helm >/dev/null 2>&1; then
+      INSTALLED_VERSION=$(helm version --short 2>/dev/null | sed -n 's/^v\([0-9.]*\).*/\1/p')
+    fi
+    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+      echo "helm $VERSION already installed, skipping download"
+    else
+      wget https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+      $USE_SUDO chmod +x get-helm-3
+      ./get-helm-3
+      rm get-helm-3
+    fi
   fi
 
   helm completion bash >completion_helm
@@ -175,11 +209,19 @@ function kubectl_install() {
     apt install -y kubectl
   else
     VERSION=$(curl -LS https://dl.k8s.io/release/stable.txt)
-    tmpdir="$(mktemp -d)"
-    wget https://dl.k8s.io/release/$VERSION/bin/linux/$PKG_ARCH/kubectl -O "$tmpdir/kubectl"
-    chmod +x "$tmpdir/kubectl"
-    $USE_SUDO mv -f "$tmpdir/kubectl" $BIN_PATH
-    rm -rf "$tmpdir"
+    INSTALLED_VERSION=""
+    if command -v kubectl >/dev/null 2>&1; then
+      INSTALLED_VERSION=$(kubectl version --client --output=json 2>/dev/null | jq -r '.clientVersion.gitVersion' | sed 's/v//g')
+    fi
+    if [[ -n "$INSTALLED_VERSION" && "v$INSTALLED_VERSION" == "$VERSION" ]]; then
+      echo "kubectl $VERSION already installed, skipping download"
+    else
+      tmpdir="$(mktemp -d)"
+      wget https://dl.k8s.io/release/$VERSION/bin/linux/$PKG_ARCH/kubectl -O "$tmpdir/kubectl"
+      chmod +x "$tmpdir/kubectl"
+      $USE_SUDO mv -f "$tmpdir/kubectl" $BIN_PATH
+      rm -rf "$tmpdir"
+    fi
   fi
 
   kubectl completion bash >completion_kubectl
@@ -296,11 +338,20 @@ function oc_install() {
     return
   fi
 
-  tmpdir="$(mktemp -d)"
-  wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz -O "$tmpdir/oc.tar.gz"
-  tar -xvf "$tmpdir/oc.tar.gz" -C "$tmpdir"
-  $USE_SUDO mv "$tmpdir/oc" $BIN_PATH
-  rm -rf "$tmpdir"
+  VERSION=$(curl -s https://api.github.com/repos/openshift/oc/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  INSTALLED_VERSION=""
+  if command -v oc >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(oc version --client 2>/dev/null | awk '/Client Version:/ {print $3}' | sed 's/v//g')
+  fi
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "oc $VERSION already installed, skipping download"
+  else
+    tmpdir="$(mktemp -d)"
+    wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz -O "$tmpdir/oc.tar.gz"
+    tar -xvf "$tmpdir/oc.tar.gz" -C "$tmpdir"
+    $USE_SUDO mv "$tmpdir/oc" $BIN_PATH
+    rm -rf "$tmpdir"
+  fi
 
   oc completion bash >completion_oc
   $USE_SUDO mv -f completion_oc $COMPLETION_FOLDER/oc
@@ -317,13 +368,22 @@ function krew_install() {
     return
   fi
 
-  OS="$(uname | tr '[:upper:]' '[:lower:]')"
-  KREW="krew-${OS}_${PKG_ARCH}"
-  tmpdir="$(mktemp -d)"
-  wget "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" -O "$tmpdir/krew.tar.gz"
-  tar -xvf "$tmpdir/krew.tar.gz" -C "$tmpdir"
-  "$tmpdir/${KREW}" install krew
-  rm -rf "$tmpdir"
+  VERSION=$(curl -s https://api.github.com/repos/kubernetes-sigs/krew/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  INSTALLED_VERSION=""
+  if command -v kubectl-krew >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(kubectl krew version 2>/dev/null | awk '/GitTag:/ {print $2}' | sed 's/v//g')
+  fi
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "krew $VERSION already installed, skipping download"
+  else
+    OS="$(uname | tr '[:upper:]' '[:lower:]')"
+    KREW="krew-${OS}_${PKG_ARCH}"
+    tmpdir="$(mktemp -d)"
+    wget "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" -O "$tmpdir/krew.tar.gz"
+    tar -xvf "$tmpdir/krew.tar.gz" -C "$tmpdir"
+    "$tmpdir/${KREW}" install krew
+    rm -rf "$tmpdir"
+  fi
 
   add_to_profile krew 'export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin"'
   # completion not yet working: https://github.com/kubernetes-sigs/krew/issues/812
@@ -335,13 +395,21 @@ function krew_install() {
 function kubectx_install() {
   echo -e "\e[31mInstalling kubectx\e[0m"
   VERSION=$(curl -s https://api.github.com/repos/ahmetb/kubectx/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
-  git clone https://github.com/ahmetb/kubectx.git
-  pushd kubectx
-  git checkout $VERSION
-  $USE_SUDO mv -f kubectx $BIN_PATH
-  $USE_SUDO mv -f kubens $BIN_PATH
-  popd
-  rm -rf kubectx
+  INSTALLED_VERSION=""
+  if command -v kubectx >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(kubectx --version 2>/dev/null | awk '{print $2}' | sed 's/v//g')
+  fi
+  if [[ -n "$INSTALLED_VERSION" && "v$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "kubectx $VERSION already installed, skipping download"
+  else
+    git clone https://github.com/ahmetb/kubectx.git
+    pushd kubectx
+    git checkout $VERSION
+    $USE_SUDO mv -f kubectx $BIN_PATH
+    $USE_SUDO mv -f kubens $BIN_PATH
+    popd
+    rm -rf kubectx
+  fi
   if [[ "$TERMUX" == "true" ]]; then
     :
   else
@@ -358,11 +426,19 @@ alias kns="kubens"'
 function netshoot_install() {
   echo -e "\e[31mInstalling netshoot\e[0m"
   VERSION=$(curl -s https://api.github.com/repos/nilic/kubectl-netshoot/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  tmpdir="$(mktemp -d)"
-  wget https://github.com/nilic/kubectl-netshoot/releases/download/v0.1.0/kubectl-netshoot_v${VERSION}_linux_$PKG_ARCH.tar.gz -O "$tmpdir/netshoot.tar.gz"
-  tar -xvf "$tmpdir/netshoot.tar.gz" -C "$tmpdir"
-  $USE_SUDO mv -f "$tmpdir/kubectl-netshoot" $BIN_PATH/netshoot
-  rm -rf "$tmpdir"
+  INSTALLED_VERSION=""
+  if command -v netshoot >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(netshoot version 2>/dev/null | awk '{print $NF}' | sed 's/v//g')
+  fi
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "netshoot $VERSION already installed, skipping download"
+  else
+    tmpdir="$(mktemp -d)"
+    wget https://github.com/nilic/kubectl-netshoot/releases/download/v${VERSION}/kubectl-netshoot_v${VERSION}_linux_$PKG_ARCH.tar.gz -O "$tmpdir/netshoot.tar.gz"
+    tar -xvf "$tmpdir/netshoot.tar.gz" -C "$tmpdir"
+    $USE_SUDO mv -f "$tmpdir/kubectl-netshoot" $BIN_PATH/netshoot
+    rm -rf "$tmpdir"
+  fi
   if [[ "$TERMUX" == "true" ]]; then
     :
   else
@@ -383,11 +459,20 @@ function k9s_install() {
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y k9s
   else
-    tmpdir="$(mktemp -d)"
-    wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_$PKG_ARCH.deb -O "$tmpdir/k9s.deb"
-    $USE_SUDO cp "$tmpdir/k9s.deb" /tmp/
-    $USE_SUDO apt install -y --fix-missing /tmp/k9s.deb
-    rm -rf "$tmpdir"
+    VERSION=$(curl -s https://api.github.com/repos/derailed/k9s/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+    INSTALLED_VERSION=""
+    if command -v k9s >/dev/null 2>&1; then
+      INSTALLED_VERSION=$(k9s version 2>/dev/null | awk '/Version/ {print $2}' | sed 's/v//g')
+    fi
+    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+      echo "k9s $VERSION already installed, skipping download"
+    else
+      tmpdir="$(mktemp -d)"
+      wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_$PKG_ARCH.deb -O "$tmpdir/k9s.deb"
+      $USE_SUDO cp "$tmpdir/k9s.deb" /tmp/
+      $USE_SUDO apt install -y --fix-missing /tmp/k9s.deb
+      rm -rf "$tmpdir"
+    fi
   fi
 
   k9s completion bash >completion_k9s
@@ -453,13 +538,20 @@ function go_install() {
     apt install -y golang
   else
     export GO_PATH_BASE=/usr/local
-    go version >/dev/null && echo -e "\e[31mFound pre-existing go version. reinstalling...\e[0m" && $USE_SUDO rm -rf $GO_PATH_BASE/go
-
     GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | cut -d' ' -f3 | tr -d 'go')
-    tmpdir="$(mktemp -d)"
-    wget https://go.dev/dl/go$GO_VERSION.linux-$PKG_ARCH.tar.gz -O "$tmpdir/go.tar.gz"
-    $USE_SUDO tar -C $GO_PATH_BASE -xzf "$tmpdir/go.tar.gz"
-    rm -rf "$tmpdir"
+    INSTALLED_VERSION=""
+    if command -v go >/dev/null 2>&1; then
+      INSTALLED_VERSION=$(go version | awk '{print $3}' | sed 's/go//g')
+    fi
+    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$GO_VERSION" ]]; then
+      echo "go $GO_VERSION already installed, skipping download"
+    else
+      go version >/dev/null && echo -e "\e[31mFound pre-existing go version. reinstalling...\e[0m" && $USE_SUDO rm -rf $GO_PATH_BASE/go
+      tmpdir="$(mktemp -d)"
+      wget https://go.dev/dl/go$GO_VERSION.linux-$PKG_ARCH.tar.gz -O "$tmpdir/go.tar.gz"
+      $USE_SUDO tar -C $GO_PATH_BASE -xzf "$tmpdir/go.tar.gz"
+      rm -rf "$tmpdir"
+    fi
   fi
 
   add_to_profile go 'export PATH="$PATH:'$GO_PATH/bin'"'
@@ -470,7 +562,16 @@ function go_install() {
 function kubecolor_install() {
   echo -e "\e[31mInstalling kubecolor\e[0m"
 
-  go install github.com/kubecolor/kubecolor@latest
+  VERSION=$(curl -s https://api.github.com/repos/kubecolor/kubecolor/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  INSTALLED_VERSION=""
+  if command -v kubecolor >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(kubecolor version --client 2>/dev/null | awk '{print $NF}' | sed 's/v//g')
+  fi
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "kubecolor $VERSION already installed, skipping go install"
+  else
+    go install github.com/kubecolor/kubecolor@latest
+  fi
 
   add_to_profile kubecolor "alias kc=kubecolor
   alias kubectl=kubecolor
@@ -506,11 +607,19 @@ function kubectl_neat_install() {
 
   if [[ "$TERMUX" == "true" ]]; then
     VERSION=$(curl -s https://api.github.com/repos/itaysk/kubectl-neat/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    tmpdir="$(mktemp -d)"
-    wget https://github.com/itaysk/kubectl-neat/releases/latest/download/kubectl-neat_linux_$PKG_ARCH.tar.gz -O "$tmpdir/kubectl-neat.tar.gz"
-    tar -xvf "$tmpdir/kubectl-neat.tar.gz" -C "$tmpdir"
-    mv -f "$tmpdir/kubectl-neat" $BIN_PATH
-    rm -rf "$tmpdir"
+    INSTALLED_VERSION=""
+    if command -v kubectl-neat >/dev/null 2>&1; then
+      INSTALLED_VERSION=$(kubectl-neat version 2>/dev/null | awk '{print $NF}' | sed 's/v//g')
+    fi
+    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+      echo "kubectl-neat $VERSION already installed, skipping download"
+    else
+      tmpdir="$(mktemp -d)"
+      wget https://github.com/itaysk/kubectl-neat/releases/latest/download/kubectl-neat_linux_$PKG_ARCH.tar.gz -O "$tmpdir/kubectl-neat.tar.gz"
+      tar -xvf "$tmpdir/kubectl-neat.tar.gz" -C "$tmpdir"
+      mv -f "$tmpdir/kubectl-neat" $BIN_PATH
+      rm -rf "$tmpdir"
+    fi
   else
     "$KREW_BIN" install neat
   fi
@@ -527,11 +636,20 @@ function kyverno_install() {
     return
   fi
 
-  tmpdir="$(mktemp -d)"
-  wget https://github.com/kyverno/kyverno/releases/download/v1.16.1/kyverno-cli_v1.16.1_linux_$OS_ARCH.tar.gz -O "$tmpdir/kyverno.tar.gz"
-  tar -xvf "$tmpdir/kyverno.tar.gz" -C "$tmpdir"
-  $USE_SUDO mv "$tmpdir/kyverno" $BIN_PATH
-  rm -rf "$tmpdir"
+  VERSION=$(curl -s https://api.github.com/repos/kyverno/kyverno/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  INSTALLED_VERSION=""
+  if command -v kyverno >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(kyverno version 2>/dev/null | awk '/Version:/ {print $2}' | sed 's/v//g')
+  fi
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "kyverno $VERSION already installed, skipping download"
+  else
+    tmpdir="$(mktemp -d)"
+    wget https://github.com/kyverno/kyverno/releases/download/v$VERSION/kyverno-cli_v$VERSION_linux_$OS_ARCH.tar.gz -O "$tmpdir/kyverno.tar.gz"
+    tar -xvf "$tmpdir/kyverno.tar.gz" -C "$tmpdir"
+    $USE_SUDO mv "$tmpdir/kyverno" $BIN_PATH
+    rm -rf "$tmpdir"
+  fi
 
   kyverno completion bash >completion_kyverno
   $USE_SUDO mv -f completion_kyverno $COMPLETION_FOLDER/kyverno
@@ -547,9 +665,18 @@ function istioctl_install() {
     return
   fi
 
-  curl -L https://istio.io/downloadIstio | sh -
-  $USE_SUDO mv istio-*/bin/istioctl $BIN_PATH
-  rm -rf istio-*
+  VERSION=$(curl -s https://api.github.com/repos/istio/istio/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  INSTALLED_VERSION=""
+  if command -v istioctl >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(istioctl version --remote=false 2>/dev/null | awk '/client version/ {print $3}' | sed 's/v//g')
+  fi
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "istioctl $VERSION already installed, skipping download"
+  else
+    ISTIO_VERSION=$VERSION curl -L https://istio.io/downloadIstio | sh -
+    $USE_SUDO mv istio-*/bin/istioctl $BIN_PATH
+    rm -rf istio-*
+  fi
 
   istioctl completion bash >completion_istioctl
   $USE_SUDO mv -f completion_istioctl $COMPLETION_FOLDER/istioctl
@@ -560,11 +687,20 @@ function istioctl_install() {
 function mc_install() {
   echo -e "\e[31mInstalling mc\e[0m"
 
-  tmpdir="$(mktemp -d)"
-  wget https://dl.min.io/client/mc/release/linux-$PKG_ARCH/mc -O "$tmpdir/mc"
-  chmod +x "$tmpdir/mc"
-  $USE_SUDO mv "$tmpdir/mc" $BIN_PATH
-  rm -rf "$tmpdir"
+  VERSION=$(curl -s https://api.github.com/repos/minio/mc/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
+  INSTALLED_VERSION=""
+  if command -v mc >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(mc --version 2>/dev/null | awk '/RELEASE/ {print $3}' | sed 's/RELEASE.//g')
+  fi
+  if [[ -n "$INSTALLED_VERSION" && "RELEASE.$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "mc $VERSION already installed, skipping download"
+  else
+    tmpdir="$(mktemp -d)"
+    wget https://dl.min.io/client/mc/release/linux-$PKG_ARCH/mc -O "$tmpdir/mc"
+    chmod +x "$tmpdir/mc"
+    $USE_SUDO mv "$tmpdir/mc" $BIN_PATH
+    rm -rf "$tmpdir"
+  fi
 
   export SHELL=/bin/bash # ensure shell for docker
   mc --autocompletion
@@ -574,11 +710,20 @@ function mc_install() {
 function yq_install() {
   echo -e "\e[31mInstalling yq\e[0m"
 
-  tmpdir="$(mktemp -d)"
-  wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$PKG_ARCH -O "$tmpdir/yq"
-  chmod +x "$tmpdir/yq"
-  $USE_SUDO mv -f "$tmpdir/yq" $BIN_PATH
-  rm -rf "$tmpdir"
+  VERSION=$(curl -s https://api.github.com/repos/mikefarah/yq/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  INSTALLED_VERSION=""
+  if command -v yq >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(yq --version 2>/dev/null | awk '{print $NF}' | sed 's/v//g')
+  fi
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "yq $VERSION already installed, skipping download"
+  else
+    tmpdir="$(mktemp -d)"
+    wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$PKG_ARCH -O "$tmpdir/yq"
+    chmod +x "$tmpdir/yq"
+    $USE_SUDO mv -f "$tmpdir/yq" $BIN_PATH
+    rm -rf "$tmpdir"
+  fi
 
   yq completion bash >completion_yq
   $USE_SUDO mv -f completion_yq $COMPLETION_FOLDER/yq
@@ -590,22 +735,34 @@ function ccat_install() {
   echo -e "\e[31mInstalling ccat\e[0m"
 
   VERSION=$(curl https://api.github.com/repos/batmac/ccat/releases | jq -r '.[0].tag_name' | sed 's/v//g')
+  INSTALLED_VERSION=""
+  if command -v ccat >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(ccat --version 2>/dev/null | awk '{print $2}' | sed 's/v//g')
+  fi
 
   if [[ "$TERMUX" == "true" ]]; then
-    git clone https://github.com/batmac/ccat.git
-    pushd ccat
-    git checkout v$VERSION
-    sed -i 's/var Default = BuildDefaultAndTest/var Default = BuildDefault/g' magefiles/magefile.go
-    make build
-    mv -f ccat $BIN_PATH
-    popd
-    rm -rf ccat
+    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+      echo "ccat $VERSION already installed, skipping build"
+    else
+      git clone https://github.com/batmac/ccat.git
+      pushd ccat
+      git checkout v$VERSION
+      sed -i 's/var Default = BuildDefaultAndTest/var Default = BuildDefault/g' magefiles/magefile.go
+      make build
+      mv -f ccat $BIN_PATH
+      popd
+      rm -rf ccat
+    fi
   else
-    tmpdir="$(mktemp -d)"
-    wget https://github.com/batmac/ccat/releases/download/v$VERSION/ccat-$VERSION-linux-$PKG_ARCH.tar.gz -O "$tmpdir/ccat.tar.gz"
-    tar -xvf "$tmpdir/ccat.tar.gz" -C "$tmpdir"
-    $USE_SUDO mv -f "$tmpdir/ccat" $BIN_PATH
-    rm -rf "$tmpdir"
+    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+      echo "ccat $VERSION already installed, skipping download"
+    else
+      tmpdir="$(mktemp -d)"
+      wget https://github.com/batmac/ccat/releases/download/v$VERSION/ccat-$VERSION-linux-$PKG_ARCH.tar.gz -O "$tmpdir/ccat.tar.gz"
+      tar -xvf "$tmpdir/ccat.tar.gz" -C "$tmpdir"
+      $USE_SUDO mv -f "$tmpdir/ccat" $BIN_PATH
+      rm -rf "$tmpdir"
+    fi
 
   fi
 
@@ -623,10 +780,19 @@ function talosctl_install() {
     MODIFIER="$USE_SUDO"
   fi
 
-  tmpdir="$(mktemp -d)"
-  wget https://talos.dev/install -O "$tmpdir/install"
-  export INSTALLPATH=$BIN_PATH && $MODIFIER bash "$tmpdir/install"
-  rm -rf "$tmpdir"
+  VERSION=$(curl -s https://api.github.com/repos/siderolabs/talos/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  INSTALLED_VERSION=""
+  if command -v talosctl >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(talosctl version --client 2>/dev/null | awk '/Client/{print $3}' | sed 's/v//g')
+  fi
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "talosctl $VERSION already installed, skipping download"
+  else
+    tmpdir="$(mktemp -d)"
+    wget https://talos.dev/install -O "$tmpdir/install"
+    export INSTALLPATH=$BIN_PATH TALOSCTL_VERSION=$VERSION && $MODIFIER bash "$tmpdir/install"
+    rm -rf "$tmpdir"
+  fi
 
   talosctl completion bash >completion_talosctl
   $USE_SUDO mv -f completion_talosctl $COMPLETION_FOLDER/talosctl
@@ -658,19 +824,36 @@ function operator_sdk_install() {
 
   if [[ "$TERMUX" == "true" ]]; then
     VERSION=$(curl -s https://api.github.com/repos/operator-framework/operator-sdk/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
-    git clone https://github.com/operator-framework/operator-sdk.git
-    pushd operator-sdk
-    git checkout $VERSION
-    make install
-    popd
-    rm -rf operator-sdk
+    INSTALLED_VERSION=""
+    if command -v operator-sdk >/dev/null 2>&1; then
+      INSTALLED_VERSION=$(operator-sdk version 2>/dev/null | awk -F'"' '/operator-sdk version/ {print $2}' | sed 's/v//g')
+    fi
+    if [[ -n "$INSTALLED_VERSION" && "v$INSTALLED_VERSION" == "$VERSION" ]]; then
+      echo "operator-sdk $VERSION already installed, skipping build"
+    else
+      git clone https://github.com/operator-framework/operator-sdk.git
+      pushd operator-sdk
+      git checkout $VERSION
+      make install
+      popd
+      rm -rf operator-sdk
+    fi
   else
     export OS=$(uname | awk '{print tolower($0)}')
-    tmpdir="$(mktemp -d)"
-    wget https://github.com/operator-framework/operator-sdk/releases/latest/download/operator-sdk_${OS}_${PKG_ARCH} -O "$tmpdir/operator-sdk"
-    chmod +x "$tmpdir/operator-sdk"
-    $USE_SUDO mv -f "$tmpdir/operator-sdk" $BIN_PATH
-    rm -rf "$tmpdir"
+    VERSION=$(curl -s https://api.github.com/repos/operator-framework/operator-sdk/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
+    INSTALLED_VERSION=""
+    if command -v operator-sdk >/dev/null 2>&1; then
+      INSTALLED_VERSION=$(operator-sdk version 2>/dev/null | awk -F'"' '/operator-sdk version/ {print $2}' | sed 's/v//g')
+    fi
+    if [[ -n "$INSTALLED_VERSION" && "v$INSTALLED_VERSION" == "$VERSION" ]]; then
+      echo "operator-sdk $VERSION already installed, skipping download"
+    else
+      tmpdir="$(mktemp -d)"
+      wget https://github.com/operator-framework/operator-sdk/releases/latest/download/operator-sdk_${OS}_${PKG_ARCH} -O "$tmpdir/operator-sdk"
+      chmod +x "$tmpdir/operator-sdk"
+      $USE_SUDO mv -f "$tmpdir/operator-sdk" $BIN_PATH
+      rm -rf "$tmpdir"
+    fi
   fi
 
   operator-sdk completion bash >completion_operator_sdk
@@ -682,11 +865,20 @@ function operator_sdk_install() {
 function argocd_install() {
   echo -e "\e[31mInstalling argocd\e[0m"
 
-  tmpdir="$(mktemp -d)"
-  wget https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-$PKG_ARCH -O "$tmpdir/argocd"
-  chmod +x "$tmpdir/argocd"
-  $USE_SUDO mv -f "$tmpdir/argocd" $BIN_PATH
-  rm -rf "$tmpdir"
+  VERSION=$(curl -s https://api.github.com/repos/argoproj/argo-cd/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  INSTALLED_VERSION=""
+  if command -v argocd >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(argocd version --client --short 2>/dev/null | awk '{print $2}' | sed 's/v//g')
+  fi
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "argocd $VERSION already installed, skipping download"
+  else
+    tmpdir="$(mktemp -d)"
+    wget https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-$PKG_ARCH -O "$tmpdir/argocd"
+    chmod +x "$tmpdir/argocd"
+    $USE_SUDO mv -f "$tmpdir/argocd" $BIN_PATH
+    rm -rf "$tmpdir"
+  fi
 
   argocd completion bash >completion_argocd
   $USE_SUDO mv -f completion_argocd $COMPLETION_FOLDER/argocd
@@ -705,11 +897,19 @@ function virtctl_install() {
     kubectl krew install virt
   fi
 
-  tmpdir="$(mktemp -d)"
-  wget https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/virtctl-${VERSION}-linux-$PKG_ARCH -O "$tmpdir/virtctl"
-  chmod +x "$tmpdir/virtctl"
-  $USE_SUDO mv -f "$tmpdir/virtctl" $BIN_PATH
-  rm -rf "$tmpdir"
+  INSTALLED_VERSION=""
+  if command -v virtctl >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(virtctl version --client 2>/dev/null | awk '/Client Version:/ {print $3}' | sed 's/v//g')
+  fi
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$(echo "$VERSION" | sed 's/v//g')" ]]; then
+    echo "virtctl $VERSION already installed, skipping download"
+  else
+    tmpdir="$(mktemp -d)"
+    wget https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/virtctl-${VERSION}-linux-$PKG_ARCH -O "$tmpdir/virtctl"
+    chmod +x "$tmpdir/virtctl"
+    $USE_SUDO mv -f "$tmpdir/virtctl" $BIN_PATH
+    rm -rf "$tmpdir"
+  fi
 
   virtctl completion bash >completion_virtctl
   $USE_SUDO mv -f completion_virtctl $COMPLETION_FOLDER/virtctl
@@ -744,11 +944,20 @@ function neovim_install() {
     $USE_SUDO_PROXY npm install -g tree-sitter-cli
     $USE_SUDO apt install ruby-full fd-find lua5.4 liblua5.4-0 liblua5.4-dev
 
-    tmpdir="$(mktemp -d)"
-    wget https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$OS_ARCH.appimage -O "$tmpdir/nvim"
-    chmod u+x "$tmpdir/nvim"
-    $USE_SUDO mv -f "$tmpdir/nvim" $BIN_PATH
-    rm -rf "$tmpdir"
+    VERSION=$(curl -s https://api.github.com/repos/neovim/neovim/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+    INSTALLED_VERSION=""
+    if command -v nvim >/dev/null 2>&1; then
+      INSTALLED_VERSION=$(nvim --version 2>/dev/null | head -1 | awk '{print $2}' | sed 's/v//g')
+    fi
+    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+      echo "neovim $VERSION already installed, skipping download"
+    else
+      tmpdir="$(mktemp -d)"
+      wget https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$OS_ARCH.appimage -O "$tmpdir/nvim"
+      chmod u+x "$tmpdir/nvim"
+      $USE_SUDO mv -f "$tmpdir/nvim" $BIN_PATH
+      rm -rf "$tmpdir"
+    fi
 
     tmpdir="$(mktemp -d)"
     wget https://luarocks.org/releases/luarocks-3.13.0.tar.gz -O "$tmpdir/luarocks.tar.gz"
@@ -1233,23 +1442,44 @@ export VISUAL=nvim"
 function chatgpt_install() {
   echo -e "\e[31mInstalling chatgpt\e[0m"
 
-  tmpdir="$(mktemp -d)"
-  wget https://github.com/kardolus/chatgpt-cli/releases/latest/download/chatgpt-linux-$PKG_ARCH -O "$tmpdir/chatgpt"
-  chmod +x "$tmpdir/chatgpt"
-  $USE_SUDO mv "$tmpdir/chatgpt" $BIN_PATH
-  rm -rf "$tmpdir"
+  VERSION=$(curl -s https://api.github.com/repos/kardolus/chatgpt-cli/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  INSTALLED_VERSION=""
+  if command -v chatgpt >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(chatgpt --version 2>/dev/null | awk '{print $NF}' | sed 's/v//g')
+  fi
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "chatgpt $VERSION already installed, skipping download"
+  else
+    tmpdir="$(mktemp -d)"
+    wget https://github.com/kardolus/chatgpt-cli/releases/latest/download/chatgpt-linux-$PKG_ARCH -O "$tmpdir/chatgpt"
+    chmod +x "$tmpdir/chatgpt"
+    $USE_SUDO mv "$tmpdir/chatgpt" $BIN_PATH
+    rm -rf "$tmpdir"
+  fi
   mkdir -p $HOME/.chatgpt-cli
 
   chatgpt completion bash >completion_chatgpt
   $USE_SUDO mv -f completion_chatgpt $COMPLETION_FOLDER/chatgpt
 
-  add_to_profile chatgpt "source $COMPLETION_FOLDER/chatgpt
+  if [[ "$TERMUX" == "true" ]]; then
+    add_to_profile chatgpt "source $COMPLETION_FOLDER/chatgpt
+alias c=\"$PROOT_DNS_CERTS chatgpt\"
+complete -C $BIN_PATH/chatgpt c
+export OPENAI_MODEL=gpt-5-mini
+export OPENAI_TRACK_TOKEN_USAGE=true
+export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'
+export OPENAI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"openai-api-key\") | .value')"
+  else
+    add_to_profile chatgpt "source $COMPLETION_FOLDER/chatgpt
 alias c=chatgpt
 complete -C $BIN_PATH/chatgpt c
 export OPENAI_MODEL=gpt-5-mini
 export OPENAI_TRACK_TOKEN_USAGE=true
 export OPENAI_ROLE='You are a seasoned tech veteran and cut right to the chase, no uneccessary output, minimalistic examples'
 export OPENAI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"openai-api-key\") | .value')"
+
+  fi
+
   chatgpt --version
 }
 
@@ -1304,23 +1534,35 @@ function vault_install() {
   echo -e "\e[31mInstalling vault\e[0m"
 
   VERSION=$(curl -s https://api.github.com/repos/hashicorp/vault/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+  INSTALLED_VERSION=""
+  if command -v vault >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(vault version 2>/dev/null | awk '{print $2}' | sed 's/v//g')
+  fi
 
   if [[ "$TERMUX" == "true" ]]; then
-    git clone https://github.com/hashicorp/vault.git
-    pushd vault
-    git checkout v$VERSION
-    echo -e "\e[31mbuilding vault may take quite some time depending on your device!\e[0m"
-    make bootstrap || echo "ignore make bootstrap error"
-    make
-    mv -f bin/vault $BIN_PATH
-    popd
-    rm -rf vault
+    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+      echo "vault $VERSION already installed, skipping build"
+    else
+      git clone https://github.com/hashicorp/vault.git
+      pushd vault
+      git checkout v$VERSION
+      echo -e "\e[31mbuilding vault may take quite some time depending on your device!\e[0m"
+      make bootstrap || echo "ignore make bootstrap error"
+      make
+      mv -f bin/vault $BIN_PATH
+      popd
+      rm -rf vault
+    fi
   else
-    tmpdir="$(mktemp -d)"
-    wget https://releases.hashicorp.com/vault/$VERSION/vault_${VERSION}_linux_${PKG_ARCH}.zip -O "$tmpdir/vault.zip"
-    unzip "$tmpdir/vault.zip" -d "$tmpdir"
-    $USE_SUDO mv -f "$tmpdir/vault" $BIN_PATH
-    rm -rf "$tmpdir"
+    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+      echo "vault $VERSION already installed, skipping download"
+    else
+      tmpdir="$(mktemp -d)"
+      wget https://releases.hashicorp.com/vault/$VERSION/vault_${VERSION}_linux_${PKG_ARCH}.zip -O "$tmpdir/vault.zip"
+      unzip "$tmpdir/vault.zip" -d "$tmpdir"
+      $USE_SUDO mv -f "$tmpdir/vault" $BIN_PATH
+      rm -rf "$tmpdir"
+    fi
   fi
 
   vault -autocomplete-install || echo "vault autocomplete already installed"
@@ -1331,6 +1573,10 @@ function bitwarden_install() {
   echo -e "\e[31mInstalling bitwarden\e[0m"
 
   VERSION=$(curl -s https://api.github.com/repos/bitwarden/sdk-sm/releases | jq -r '.[] | select(.tag_name | test("bws"; "i")) | .tag_name' | head -1 | sed 's/bws-v//g')
+  INSTALLED_VERSION=""
+  if command -v bws >/dev/null 2>&1; then
+    INSTALLED_VERSION=$(bws --version 2>/dev/null | awk '{print $2}' | sed 's/v//g')
+  fi
 
   if [[ "$TERMUX" == "true" ]]; then
     export BWS_ARCH=musl
@@ -1338,11 +1584,15 @@ function bitwarden_install() {
     export BWS_ARCH=gnu
   fi
 
-  tmpdir="$(mktemp -d)"
-  wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v$VERSION/bws-$OS_ARCH-unknown-linux-$BWS_ARCH-$VERSION.zip -O "$tmpdir/bws.zip"
-  unzip "$tmpdir/bws.zip" -d "$tmpdir"
-  $USE_SUDO mv -f "$tmpdir/bws" $BIN_PATH
-  rm -rf "$tmpdir"
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "bitwarden (bws) $VERSION already installed, skipping download"
+  else
+    tmpdir="$(mktemp -d)"
+    wget https://github.com/bitwarden/sdk-sm/releases/download/bws-v$VERSION/bws-$OS_ARCH-unknown-linux-$BWS_ARCH-$VERSION.zip -O "$tmpdir/bws.zip"
+    unzip "$tmpdir/bws.zip" -d "$tmpdir"
+    $USE_SUDO mv -f "$tmpdir/bws" $BIN_PATH
+    rm -rf "$tmpdir"
+  fi
 
   bws completions bash >completion_bitwarden
   $USE_SUDO mv -f completion_bitwarden $COMPLETION_FOLDER/bitwarden
