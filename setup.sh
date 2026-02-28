@@ -609,11 +609,7 @@ function mc_install() {
   echo -e "\e[31mInstalling mc\e[0m"
 
   VERSION=$(curl -s https://api.github.com/repos/minio/mc/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
-  INSTALLED_VERSION=""
-  if command -v mc >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(mc --version 2>/dev/null | awk '/RELEASE/ {print $3}' | sed 's/RELEASE.//g')
-  fi
-  if [[ -n "$INSTALLED_VERSION" && "RELEASE.$INSTALLED_VERSION" == "$VERSION" ]]; then
+  if [[ "$(mc --version 2>/dev/null | awk '/RELEASE/ {print $3}')" == "$VERSION" ]]; then
     echo "mc $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -652,15 +648,10 @@ function ccat_install() {
   echo -e "\e[31mInstalling ccat\e[0m"
 
   VERSION=$(curl https://api.github.com/repos/batmac/ccat/releases | jq -r '.[0].tag_name' | sed 's/v//g')
-  INSTALLED_VERSION=""
-  if command -v ccat >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(ccat --version 2>/dev/null | awk '{print $2}' | sed 's/v//g')
-  fi
-
-  if [[ "$TERMUX" == "true" ]]; then
-    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
-      echo "ccat $VERSION already installed, skipping build"
-    else
+  if [[ "$(ccat --version 2>/dev/null | awk '{print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
+    echo "ccat $VERSION already installed, skipping build"
+  else
+    if [[ "$TERMUX" == "true" ]]; then
       git clone https://github.com/batmac/ccat.git
       pushd ccat
       git checkout v$VERSION
@@ -669,10 +660,6 @@ function ccat_install() {
       mv -f ccat $BIN_PATH
       popd
       rm -rf ccat
-    fi
-  else
-    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
-      echo "ccat $VERSION already installed, skipping download"
     else
       tmpdir="$(mktemp -d)"
       wget https://github.com/batmac/ccat/releases/download/v$VERSION/ccat-$VERSION-linux-$PKG_ARCH.tar.gz -O "$tmpdir/ccat.tar.gz"
@@ -680,7 +667,6 @@ function ccat_install() {
       $USE_SUDO mv -f "$tmpdir/ccat" $BIN_PATH
       rm -rf "$tmpdir"
     fi
-
   fi
 
   add_to_profile ccat "alias cat=ccat
@@ -1897,9 +1883,9 @@ install_tools() {
   #docker_install
   #kubectl_neat_install
   #istioctl_install
-  kyverno_install
+  #kyverno_install
   #mc_install
-  #ccat_install
+  ccat_install
   #talosctl_install
   #python_install
   #speedtest_install
