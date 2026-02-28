@@ -647,7 +647,7 @@ function yq_install() {
 function ccat_install() {
   echo -e "\e[31mInstalling ccat\e[0m"
 
-  VERSION=$(curl https://api.github.com/repos/batmac/ccat/releases | jq -r '.[0].tag_name' | sed 's/v//g')
+  VERSION=$(curl -s https://api.github.com/repos/batmac/ccat/releases | jq -r '.[0].tag_name' | sed 's/v//g')
   if [[ "$(ccat --version 2>/dev/null | awk '{print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
     echo "ccat $VERSION already installed, skipping build"
   else
@@ -684,11 +684,7 @@ function talosctl_install() {
   fi
 
   VERSION=$(curl -s https://api.github.com/repos/siderolabs/talos/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  INSTALLED_VERSION=""
-  if command -v talosctl >/dev/null 2>&1; then
-    INSTALLED_VERSION=$(talosctl version --client 2>/dev/null | awk '/Client/{print $3}' | sed 's/v//g')
-  fi
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+  if [[ "$(talosctl version --client 2>/dev/null | grep -oP 'Tag:\s+v\K[\d.]+')" == "$VERSION" ]]; then
     echo "talosctl $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -725,32 +721,19 @@ alias fast=speedtest'
 function operator_sdk_install() {
   echo -e "\e[31mInstalling operator-sdk\e[0m"
 
-  if [[ "$TERMUX" == "true" ]]; then
-    VERSION=$(curl -s https://api.github.com/repos/operator-framework/operator-sdk/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
-    INSTALLED_VERSION=""
-    if command -v operator-sdk >/dev/null 2>&1; then
-      INSTALLED_VERSION=$(operator-sdk version 2>/dev/null | awk -F'"' '/operator-sdk version/ {print $2}' | sed 's/v//g')
-    fi
-    if [[ -n "$INSTALLED_VERSION" && "v$INSTALLED_VERSION" == "$VERSION" ]]; then
-      echo "operator-sdk $VERSION already installed, skipping build"
-    else
+  VERSION=$(curl -s https://api.github.com/repos/operator-framework/operator-sdk/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
+  if [[ "$(operator-sdk version 2>/dev/null | awk -F'"' '/operator-sdk version/ {print $2}')" == "$VERSION" ]]; then
+    echo "operator-sdk $VERSION already installed, skipping build"
+  else
+    if [[ "$TERMUX" == "true" ]]; then
       git clone https://github.com/operator-framework/operator-sdk.git
       pushd operator-sdk
       git checkout $VERSION
       make install
       popd
       rm -rf operator-sdk
-    fi
-  else
-    export OS=$(uname | awk '{print tolower($0)}')
-    VERSION=$(curl -s https://api.github.com/repos/operator-framework/operator-sdk/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
-    INSTALLED_VERSION=""
-    if command -v operator-sdk >/dev/null 2>&1; then
-      INSTALLED_VERSION=$(operator-sdk version 2>/dev/null | awk -F'"' '/operator-sdk version/ {print $2}' | sed 's/v//g')
-    fi
-    if [[ -n "$INSTALLED_VERSION" && "v$INSTALLED_VERSION" == "$VERSION" ]]; then
-      echo "operator-sdk $VERSION already installed, skipping download"
     else
+      export OS=$(uname | awk '{print tolower($0)}')
       tmpdir="$(mktemp -d)"
       wget https://github.com/operator-framework/operator-sdk/releases/latest/download/operator-sdk_${OS}_${PKG_ARCH} -O "$tmpdir/operator-sdk"
       chmod +x "$tmpdir/operator-sdk"
@@ -1885,11 +1868,11 @@ install_tools() {
   #istioctl_install
   #kyverno_install
   #mc_install
-  ccat_install
+  #ccat_install
   #talosctl_install
   #python_install
   #speedtest_install
-  #operator_sdk_install
+  operator_sdk_install
   #argocd_install
   #virtctl_install
   #chatgpt_install
