@@ -566,12 +566,16 @@ function kyverno_install() {
   echo -e "\e[31mInstalling kyverno\e[0m"
 
   VERSION=$(curl -s https://api.github.com/repos/kyverno/kyverno/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-
+  F_ARCH=$OS_ARCH
+  if [[ "$F_ARCH" == "aarch64" ]]; then
+    # kyverno using arch inconsistently with other tools..
+    F_ARCH=$PKG_ARCH
+  fi
   if [[ "$(kyverno version 2>/dev/null | awk '/Version:/ {print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
     echo "kyverno $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
-    wget https://github.com/kyverno/kyverno/releases/download/v$VERSION/kyverno-cli_v${VERSION}_linux_${PKG_ARCH}.tar.gz -O "$tmpdir/kyverno.tar.gz"
+    wget https://github.com/kyverno/kyverno/releases/download/v$VERSION/kyverno-cli_v${VERSION}_linux_${F_ARCH}.tar.gz -O "$tmpdir/kyverno.tar.gz"
     tar -xvf "$tmpdir/kyverno.tar.gz" -C "$tmpdir"
     $USE_SUDO mv "$tmpdir/kyverno" $BIN_PATH
     rm -rf "$tmpdir"
