@@ -485,11 +485,7 @@ function go_install() {
   else
     export GO_PATH_BASE=/usr/local
     GO_VERSION=$($_CURL https://go.dev/VERSION?m=text | cut -d' ' -f3 | tr -d 'go')
-    INSTALLED_VERSION=""
-    if command -v go >/dev/null 2>&1; then
-      INSTALLED_VERSION=$(go version | sed 's/.*go\([0-9.]*\).*/\1/')
-    fi
-    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$GO_VERSION" ]]; then
+    if [[ "$(go version | sed 's/.*go\([0-9.]*\).*/\1/')" == "$GO_VERSION" ]]; then
       echo "go $GO_VERSION already installed, skipping download"
     else
       go version >/dev/null && echo -e "\e[31mFound pre-existing go version. reinstalling...\e[0m" && $USE_SUDO rm -rf $GO_PATH_BASE/go
@@ -497,6 +493,7 @@ function go_install() {
       $_WGET https://go.dev/dl/go$GO_VERSION.linux-$PKG_ARCH.tar.gz -O "$tmpdir/go.tar.gz"
       $USE_SUDO tar -C $GO_PATH_BASE -xzf "$tmpdir/go.tar.gz"
       rm -rf "$tmpdir"
+      export GO_PATH=$GO_PATH_BASE/go
     fi
   fi
 
