@@ -24,7 +24,7 @@ add_to_profile() {
   echo "#$section" >>$_bashrc
   echo "$code" >>$_bashrc
   echo "#/$section" >>$_bashrc
-  source $_bashrc
+  # source $_bashrc
 }
 
 function proxy() {
@@ -88,17 +88,19 @@ function terraform_install() {
     unzip "$tmpdir/terraform.zip" -d "$tmpdir"
     $USE_SUDO mv -f "$tmpdir/terraform" $BIN_PATH
     rm -rf "$tmpdir"
+    if [[ "$TERMUX" == "true" ]]; then
+      pushd $PREFIX/bin
+      mv terraform _terraform
+      echo "#!$PREFIX/bin/bash
+$PROOT_DNS_CERTS $PREFIX/bin/_terraform \$@" >terraform
+      chmod +x terraform
+      popd
+    fi
   fi
 
   terraform -install-autocomplete || echo "probably already added terraform autoinstall"
 
   if [[ "$TERMUX" == "true" ]]; then
-    pushd $PREFIX/bin
-    mv terraform _terraform
-    echo "#!$PREFIX/bin/bash
-$PROOT_DNS_CERTS $PREFIX/bin/_terraform \$@" >terraform
-    chmod +x terraform
-    popd
     add_to_profile terraform 'complete -C $PREFIX/bin/terraform tf
 complete -C $PREFIX/bin/terraform terraform
 alias tf="terraform"
@@ -1448,19 +1450,19 @@ function bitwarden_install() {
     unzip "$tmpdir/bws.zip" -d "$tmpdir"
     $USE_SUDO mv -f "$tmpdir/bws" $BIN_PATH
     rm -rf "$tmpdir"
+    if [[ "$TERMUX" == "true" ]]; then
+      pushd $BIN_PATH
+      mv -f bws _bws
+      echo "#!$PREFIX/bin/bash
+$PROOT_DNS_CERTS $BIN_PATH/_bws \$@" >bws
+      chmod +x bws
+      popd
+    fi
   fi
 
   bws completions bash >completion_bitwarden
   $USE_SUDO mv -f completion_bitwarden $COMPLETION_FOLDER/bitwarden
 
-  if [[ "$TERMUX" == "true" ]]; then
-    pushd $BIN_PATH
-    mv bws _bws
-    echo "#!$PREFIX/bin/bash
-$PROOT_DNS_CERTS $BIN_PATH/_bws \$@" >bws
-    chmod +x bws
-    popd
-  fi
   add_to_profile bitwarden "source $COMPLETION_FOLDER/bitwarden
 source $HOME/.secure_vars"
 
