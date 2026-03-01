@@ -80,7 +80,7 @@ function terraform_install() {
   echo -e "\e[31mInstalling terraform\e[0m"
 
   VERSION=$($_CURL https://api.github.com/repos/hashicorp/terraform/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  if [[ "$(terraform version | head -1 | awk '{print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
+  if [[ "$(terraform version | sed -n 's/^Terraform v//p')" == "$VERSION" ]]; then
     echo "terraform $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -137,7 +137,7 @@ function kustomize_install() {
   echo -e "\e[31mInstalling kustomize\e[0m"
 
   TAG=$($_CURL https://api.github.com/repos/kubernetes-sigs/kustomize/releases | jq -r '[.[] | select(.prerelease == false)] | [.[] | select(.tag_name | contains("kustomize"))] | .[0].tag_name')
-  if [[ "$(kustomize version --short 2>/dev/null | grep -o 'kustomize/v[0-9.]*')" == "$TAG" ]]; then
+  if [[ "$(kustomize version --short 2>/dev/null | sed 's/.*{\([^ ]*\).*/\1/')" == "$TAG" ]]; then
     echo "kustomize $TAG already installed, skipping download"
   else
     if [[ "$TERMUX" == "true" ]]; then
@@ -408,7 +408,7 @@ function k9s_install() {
     apt install -y k9s
   else
     VERSION=$($_CURL https://api.github.com/repos/derailed/k9s/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    if [[ "$(k9s version 2>/dev/null | awk '/Version/ {print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
+    if [[ "$(k9s version 2>/dev/null | sed -n 's/^Version *//p')" == "$VERSION" ]]; then
       echo "k9s $VERSION already installed, skipping download"
     else
       tmpdir="$(mktemp -d)"
@@ -485,7 +485,7 @@ function go_install() {
     GO_VERSION=$($_CURL https://go.dev/VERSION?m=text | cut -d' ' -f3 | tr -d 'go')
     INSTALLED_VERSION=""
     if command -v go >/dev/null 2>&1; then
-      INSTALLED_VERSION=$(go version | awk '{print $3}' | sed 's/go//g')
+      INSTALLED_VERSION=$(go version | sed 's/.*go\([0-9.]*\).*/\1/')
     fi
     if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$GO_VERSION" ]]; then
       echo "go $GO_VERSION already installed, skipping download"
@@ -542,7 +542,7 @@ function kubectl_neat_install() {
 
   if [[ "$TERMUX" == "true" ]]; then
     VERSION=$($_CURL https://api.github.com/repos/itaysk/kubectl-neat/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    if [[ "$(kubectl-neat version 2>/dev/null | awk '{print $NF}' | sed 's/v//g')" == "$VERSION" ]]; then
+    if [[ "$(kubectl-neat version 2>/dev/null | sed 's/.* //')" == "$VERSION" ]]; then
       echo "kubectl-neat $VERSION already installed, skipping download"
     else
       tmpdir="$(mktemp -d)"
@@ -568,7 +568,7 @@ function kyverno_install() {
     # kyverno using arch inconsistently with other tools..
     F_ARCH=$PKG_ARCH
   fi
-  if [[ "$(kyverno version 2>/dev/null | awk '/Version:/ {print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
+  if [[ "$(kyverno version 2>/dev/null | sed -n 's/^Version: //p')" == "$VERSION" ]]; then
     echo "kyverno $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -588,7 +588,7 @@ function istioctl_install() {
   echo -e "\e[31mInstalling istioctl\e[0m"
 
   VERSION=$($_CURL https://api.github.com/repos/istio/istio/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  if [[ "$(istioctl version --remote=false 2>/dev/null | awk '/client version/ {print $3}' | sed 's/v//g')" == "$VERSION" ]]; then
+  if [[ "$(istioctl version --remote=false 2>/dev/null | sed -n 's/^.*version: //p')" == "$VERSION" ]]; then
     echo "istioctl $VERSION already installed, skipping download"
   else
     $_CURL -L https://istio.io/downloadIstio | sh -
@@ -606,7 +606,7 @@ function mc_install() {
   echo -e "\e[31mInstalling mc\e[0m"
 
   VERSION=$($_CURL https://api.github.com/repos/minio/mc/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
-  if [[ "$(mc --version 2>/dev/null | awk '/RELEASE/ {print $3}')" == "$VERSION" ]]; then
+  if [[ "$(mc --version 2>/dev/null | sed -n 's/^mc version \(.*\) (.*)/\1/p')" == "$VERSION" ]]; then
     echo "mc $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -625,7 +625,7 @@ function yq_install() {
   echo -e "\e[31mInstalling yq\e[0m"
 
   VERSION=$($_CURL https://api.github.com/repos/mikefarah/yq/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  if [[ "$(yq --version 2>/dev/null | awk '{print $NF}' | sed 's/v//g')" == "$VERSION" ]]; then
+  if [[ "$(yq --version 2>/dev/null | sed -n 's/^.*version v//p')" == "$VERSION" ]]; then
     echo "yq $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -645,7 +645,7 @@ function ccat_install() {
   echo -e "\e[31mInstalling ccat\e[0m"
 
   VERSION=$($_CURL https://api.github.com/repos/batmac/ccat/releases | jq -r '.[0].tag_name' | sed 's/v//g')
-  if [[ "$(ccat --version 2>/dev/null | awk '{print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
+  if [[ "$(ccat --version 2>/dev/null | sed 's/.*v\([0-9.]*\).*/\1/')" == "$VERSION" ]]; then
     echo "ccat $VERSION already installed, skipping build"
   else
     if [[ "$TERMUX" == "true" ]]; then
@@ -681,7 +681,7 @@ function talosctl_install() {
   fi
 
   VERSION=$($_CURL https://api.github.com/repos/siderolabs/talos/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  if [[ "$(talosctl version --client 2>/dev/null | grep -oP 'Tag:\s+v\K[\d.]+')" == "$VERSION" ]]; then
+  if [[ "$(talosctl version --client 2>/dev/null | sed -n 's/.*Tag: *v//p')" == "$VERSION" ]]; then
     echo "talosctl $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -719,7 +719,7 @@ function operator_sdk_install() {
   echo -e "\e[31mInstalling operator-sdk\e[0m"
 
   VERSION=$($_CURL https://api.github.com/repos/operator-framework/operator-sdk/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
-  if [[ "$(operator-sdk version 2>/dev/null | awk -F'"' '/operator-sdk version/ {print $2}')" == "$VERSION" ]]; then
+  if [[ "$(operator-sdk version 2>/dev/null | sed -E 's/.*version: "([^"]+)".*"v([^"]+)".*/\1/')" == "$VERSION" ]]; then
     echo "operator-sdk $VERSION already installed, skipping build"
   else
     if [[ "$TERMUX" == "true" ]]; then
@@ -730,9 +730,8 @@ function operator_sdk_install() {
       popd
       rm -rf operator-sdk
     else
-      export OS=$(uname | awk '{print tolower($0)}')
       tmpdir="$(mktemp -d)"
-      $_WGET https://github.com/operator-framework/operator-sdk/releases/latest/download/operator-sdk_${OS}_${PKG_ARCH} -O "$tmpdir/operator-sdk"
+      $_WGET https://github.com/operator-framework/operator-sdk/releases/latest/download/operator-sdk_linux_${PKG_ARCH} -O "$tmpdir/operator-sdk"
       chmod +x "$tmpdir/operator-sdk"
       $USE_SUDO mv -f "$tmpdir/operator-sdk" $BIN_PATH
       rm -rf "$tmpdir"
@@ -749,7 +748,7 @@ function argocd_install() {
   echo -e "\e[31mInstalling argocd\e[0m"
 
   VERSION=$($_CURL https://api.github.com/repos/argoproj/argo-cd/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
-  if [[ "$(argocd version --client --short 2>/dev/null | awk '{print $2}' | sed 's/\+.*//')" == "$VERSION" ]]; then
+  if [[ "$(argocd version --client --short 2>/dev/null | sed -E 's/.*(v[0-9.]*).*/\1/')" == "$VERSION" ]]; then
     echo "argocd $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -821,11 +820,7 @@ function neovim_install() {
     $USE_SUDO apt install ruby-full fd-find lua5.4 liblua5.4-0 liblua5.4-dev
 
     VERSION=$($_CURL https://api.github.com/repos/neovim/neovim/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    INSTALLED_VERSION=""
-    if command -v nvim >/dev/null 2>&1; then
-      INSTALLED_VERSION=$(nvim --version 2>/dev/null | head -1 | awk '{print $2}' | sed 's/v//g')
-    fi
-    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    if [[ "$(nvim --version 2>/dev/null | sed -n 's/^NVIM v//p')" == "$VERSION" ]]; then
       echo "neovim $VERSION already installed, skipping download"
     else
       tmpdir="$(mktemp -d)"
@@ -1321,7 +1316,7 @@ function chatgpt_install() {
   echo -e "\e[31mInstalling chatgpt\e[0m"
 
   VERSION=$($_CURL https://api.github.com/repos/kardolus/chatgpt-cli/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  if [[ "$(chatgpt --version 2>/dev/null | grep -oP '(?<=v)[\d.]+')" == "$VERSION" ]]; then
+  if [[ "$(chatgpt --version 2>/dev/null | sed 's/.*v\([0-9.]*\).*/\1/')" == "$VERSION" ]]; then
     echo "chatgpt $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
@@ -1408,7 +1403,7 @@ function vault_install() {
   echo -e "\e[31mInstalling vault\e[0m"
 
   VERSION=$($_CURL https://api.github.com/repos/hashicorp/vault/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-  if [[ "$(vault version 2>/dev/null | awk '{print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
+  if [[ "$(vault version 2>/dev/null | sed 's/.*v\([0-9.]*\).*/\1/')" == "$VERSION" ]]; then
     echo "vault $VERSION already installed, skipping build"
   else
     if [[ "$TERMUX" == "true" ]]; then
@@ -1445,7 +1440,7 @@ function bitwarden_install() {
     export BWS_ARCH=gnu
   fi
 
-  if [[ "$(bws --version 2>/dev/null | awk '{print $2}' | sed 's/v//g')" == "$VERSION" ]]; then
+  if [[ "$(bws --version 2>/dev/null | sed -n 's/^bws //p')" == "$VERSION" ]]; then
     echo "bitwarden (bws) $VERSION already installed, skipping download"
   else
     tmpdir="$(mktemp -d)"
