@@ -478,27 +478,27 @@ alias kd=k9s"
 function go_install() {
   echo -e "\e[31mInstalling go\e[0m"
 
-  export GO_PATH=$HOME/go
-
+  export GO_HOME=$HOME/go
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y golang
+    export GO_PATH=$PREFIX/local/go
   else
     export GO_PATH_BASE=/usr/local
+    export GO_PATH=$GO_PATH_BASE/go
     GO_VERSION=$($_CURL https://go.dev/VERSION?m=text | cut -d' ' -f3 | tr -d 'go')
     if [[ "$(go version | sed 's/.*go\([0-9.]*\).*/\1/')" == "$GO_VERSION" ]]; then
       echo "go $GO_VERSION already installed, skipping download"
     else
-      go version >/dev/null && echo -e "\e[31mFound pre-existing go version. reinstalling...\e[0m" && $USE_SUDO rm -rf $GO_PATH_BASE/go
+      go version >/dev/null && echo -e "\e[31mFound pre-existing go version. reinstalling...\e[0m" && $USE_SUDO rm -rf $GO_PATH
       tmpdir="$(mktemp -d)"
       $_WGET https://go.dev/dl/go$GO_VERSION.linux-$PKG_ARCH.tar.gz -O "$tmpdir/go.tar.gz"
       $USE_SUDO tar -C $GO_PATH_BASE -xzf "$tmpdir/go.tar.gz"
       rm -rf "$tmpdir"
-      export GO_PATH=$GO_PATH_BASE/go
     fi
   fi
 
-  add_to_profile go 'export PATH="$PATH:'$GO_PATH/bin'"'
-  export PATH="$PATH:$GO_PATH/bin"
+  add_to_profile go 'export PATH="$PATH:'$GO_PATH/bin':'$GO_HOME/bin'"'
+  export PATH="$PATH:$GO_PATH/bin:$GO_HOME/bin"
   go version
 }
 
