@@ -1714,16 +1714,16 @@ alias gg=gitgud
 alias gwip=gitwip
 alias gc='git clone'"
 
-  add_to_profile prompt 'WHITE="\[$(tput setaf 7)\]"
-CYAN="\[$(tput setaf 3)\]"
-MAGENTA="\[$(tput setaf 5)\]"
-BLUE="\[$(tput setaf 6)\]"
-GREEN="\[$(tput setaf 34)\]"
-TIME=$CYAN'"'\T'"'
-USER_HOST=$MAGENTA'"'\u@\h'"'
-KUBECTL=$MAGENTA'"'"'$(kubectl config current-context 2> /dev/null)/$(kubectl config view --minify -o jsonpath='{..namespace}' 2> /dev/null)'"'"'
-CURRENT_PATH=$BLUE'"'\w'"'
-export PS1="$WHITE[$TIME$WHITE]$WHITE[$USER_HOST$WHITE]$WHITE[$KUBECTL$WHITE]$CURRENT_PATH$WHITE: $GREEN"'
+  add_to_profile prompt 'WHITE=$(tput setaf 7)
+CYAN=$(tput setaf 3)
+MAGENTA=$(tput setaf 5)
+BLUE=$(tput setaf 6)
+GREEN=$(tput setaf 34)
+
+GET_CTX="\$(kubectl config current-context 2> /dev/null)"
+GET_NS="\$(kubectl config view --minify -o jsonpath='"'{..namespace}'"' 2> /dev/null)"
+
+export PS1="\[$WHITE\][\[$CYAN\]\T\[$WHITE\]]\[$WHITE\][\[$MAGENTA\]\u@\h\[$WHITE\]]\[$WHITE\][\[$MAGENTA\]${GET_CTX}/${GET_NS}\[$WHITE\]]\[$BLUE\]\w\[$WHITE\]:\[$GREEN\] "'
 
   sed -i 's/HISTSIZE.*//g' $_bashrc
   sed -i 's/HISTFILESIZE.*//g' $_bashrc
