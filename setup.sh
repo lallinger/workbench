@@ -521,7 +521,7 @@ function docker_install() {
     return
   fi
 
-  $USE_SUDO apt -y install docker.io
+  $USE_SUDO apt -y install docker.io docker-buildx
 
   docker completion bash >completion_docker
   $USE_SUDO mv -f completion_docker $COMPLETION_FOLDER/docker
