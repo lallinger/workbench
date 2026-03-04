@@ -1282,6 +1282,19 @@ vim.keymap.set('i', '<C-f>', '<Esc>/', { noremap = true })" >$HOME/.config/nvim/
   },
 }' >$HOME/.config/nvim/lua/plugins/yaml-companion.lua
 
+  echo '   return {
+   "xiantang/darcula-dark.nvim",
+   dependencies = {
+    "nvim-treesitter/nvim-treesitter",
+    },
+    {
+    "LazyVim/LazyVim",
+    opts = {
+    colorscheme = "darcula-dark",
+    },
+   },
+}' >$HOME/.config/nvim/lua/plugins/darcula.lua
+
   echo 'return {
   "nvim-lualine/lualine.nvim",
   event = "VeryLazy",
