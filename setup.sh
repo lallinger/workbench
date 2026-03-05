@@ -14,11 +14,15 @@ _bashrc=$HOME/.bashrc
 export _CURL="curl -sS"
 export _WGET="wget -q --show-progress"
 
+log_red() {
+  echo -e "\e[31m$1\e[0m"
+}
+
 add_to_profile() {
   section=$1
   code=$2
 
-  grep "#$section" $_bashrc && (echo -e "\e[31mfound section $section, replacing\e[0m" && sed -i "/#$section/,/#\/$section/d" $_bashrc && sed -i '/^$/N;/\n$/s/\n//;P;D' $_bashrc) || echo -n
+  grep "#$section" $_bashrc && (log_red "found section $section, replacing" && sed -i "/#$section/,/#\/$section/d" $_bashrc && sed -i '/^$/N;/\n$/s/\n//;P;D' $_bashrc) || echo -n
 
   echo "" >>$_bashrc
   echo "#$section" >>$_bashrc
@@ -28,10 +32,10 @@ add_to_profile() {
 }
 
 function proxy() {
-  $_CURL google.de || echo -e "\e[31mProxy needed? set HTTP_PROXY\e[0m"
+  $_CURL google.de || log_red "Proxy needed? set HTTP_PROXY"
   sleep 5
   if [ -n "$HTTP_PROXY" ]; then
-    echo -e "\e[31musing proxy $HTTP_PROXY\e[0m"
+    log_red "using proxy $HTTP_PROXY"
     export https_proxy=$HTTP_PROXY
     export http_proxy=$HTTP_PROXY
     export HTTP_PROXY=$HTTP_PROXY
@@ -47,7 +51,7 @@ Acquire::https::Proxy \"$HTTP_PROXY\";" | $USE_SUDO tee /etc/apt/apt.conf
 }
 
 function prepare() {
-  sudo -v && export USE_SUDO="sudo" || echo -e "\e[31mno sudo found, continuing without\e[0m"
+  sudo -v && export USE_SUDO="sudo" || log_red "no sudo found, continuing without"
 
   export OS_ARCH=$(uname -m)
   if [[ "$OS_ARCH" == "x86_64" ]]; then
@@ -79,7 +83,7 @@ function prepare() {
 }
 
 function terraform_install() {
-  echo -e "\e[31mInstalling terraform\e[0m"
+  log_red "Installing terraform"
 
   VERSION=$($_CURL https://api.github.com/repos/hashicorp/terraform/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
   if [[ "$(terraform version | sed -n 's/^Terraform v//p')" == "$VERSION" ]]; then
@@ -138,7 +142,7 @@ export TF_VAR_portainer_endpoint=\$TF_VAR_portainer_endpoint" # -> set via .secu
 }
 
 function kustomize_install() {
-  echo -e "\e[31mInstalling kustomize\e[0m"
+  log_red "Installing kustomize"
 
   TAG=$($_CURL https://api.github.com/repos/kubernetes-sigs/kustomize/releases | jq -r '[.[] | select(.prerelease == false)] | [.[] | select(.tag_name | contains("kustomize"))] | .[0].tag_name')
   if [[ "$(kustomize version --short 2>/dev/null | sed 's/.*{\([^ ]*\).*/\1/')" == "$TAG" ]]; then
@@ -164,7 +168,7 @@ alias touchk="touch kustomization.yaml && (kustomize edit remove resource \$(yq 
 }
 
 function helm_install() {
-  echo -e "\e[31mInstalling helm\e[0m"
+  log_red "Installing helm"
 
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y helm
@@ -182,7 +186,7 @@ function helm_install() {
 }
 
 function kubectl_install() {
-  echo -e "\e[31mInstalling kubectl\e[0m"
+  log_red "Installing kubectl"
 
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y kubectl
@@ -306,10 +310,10 @@ alias kng="kubectl neat get"
 }
 
 function oc_install() {
-  echo -e "\e[31mInstalling oc\e[0m"
+  log_red "Installing oc"
 
   if [[ "$TERMUX" == "true" ]]; then
-    echo -e "\e[31mskipping\e[0m"
+    log_red "skipping"
     return
   fi
 
@@ -328,10 +332,10 @@ alias o=oc"
 }
 
 function krew_install() {
-  echo -e "\e[31mInstalling krew\e[0m"
+  log_red "Installing krew"
 
   if [[ "$TERMUX" == "true" ]]; then
-    echo -e "\e[31mskipping\e[0m"
+    log_red "skipping"
     return
   fi
 
@@ -356,7 +360,7 @@ function krew_install() {
 }
 
 function kubectx_install() {
-  echo -e "\e[31mInstalling kubectx\e[0m"
+  log_red "Installing kubectx"
 
   # skip version check, seems to very rarely get updates but not releases..just use master as it's just a bash script
   git clone https://github.com/ahmetb/kubectx.git
@@ -380,7 +384,7 @@ alias kns="kubens"'
 }
 
 function netshoot_install() {
-  echo -e "\e[31mInstalling netshoot\e[0m"
+  log_red "Installing netshoot"
 
   if command -v netshoot >/dev/null 2>&1; then
     echo "netshoot $VERSION already installed, skipping download"
@@ -406,7 +410,7 @@ source $COMPLETION_FOLDER/netshoot"
 }
 
 function k9s_install() {
-  echo -e "\e[31mInstalling k9s\e[0m"
+  log_red "Installing k9s"
 
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y k9s
@@ -478,7 +482,7 @@ alias kd=k9s"
 }
 
 function go_install() {
-  echo -e "\e[31mInstalling go\e[0m"
+  log_red "Installing go"
 
   export GO_HOME=$HOME/go
   if [[ "$TERMUX" == "true" ]]; then
@@ -491,7 +495,7 @@ function go_install() {
     if [[ "$(go version | sed 's/.*go\([0-9.]*\).*/\1/')" == "$GO_VERSION" ]]; then
       echo "go $GO_VERSION already installed, skipping download"
     else
-      go version >/dev/null && echo -e "\e[31mFound pre-existing go version. reinstalling...\e[0m" && $USE_SUDO rm -rf $GO_PATH
+      go version >/dev/null && log_red "Found pre-existing go version. reinstalling..." && $USE_SUDO rm -rf $GO_PATH
       tmpdir="$(mktemp -d)"
       $_WGET https://go.dev/dl/go$GO_VERSION.linux-$PKG_ARCH.tar.gz -O "$tmpdir/go.tar.gz"
       $USE_SUDO tar -C $GO_PATH_BASE -xzf "$tmpdir/go.tar.gz"
@@ -505,7 +509,7 @@ function go_install() {
 }
 
 function kubecolor_install() {
-  echo -e "\e[31mInstalling kubecolor\e[0m"
+  log_red "Installing kubecolor"
 
   go install github.com/kubecolor/kubecolor@latest
 
@@ -516,10 +520,10 @@ complete -F __start_kubectl kubecolor"
 }
 
 function docker_install() {
-  echo -e "\e[31mInstalling docker\e[0m"
+  log_red "Installing docker"
 
   if [[ "$TERMUX" == "true" ]]; then
-    echo -e "\e[31mskipping\e[0m"
+    log_red "skipping"
     return
   fi
 
@@ -539,7 +543,7 @@ complete -F __start_docker docker"
 }
 
 function kubectl_neat_install() {
-  echo -e "\e[31mInstalling kubectl-neat\e[0m"
+  log_red "Installing kubectl-neat"
 
   if [[ "$TERMUX" == "true" ]]; then
     VERSION=$($_CURL https://api.github.com/repos/itaysk/kubectl-neat/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
@@ -561,7 +565,7 @@ function kubectl_neat_install() {
 }
 
 function kyverno_install() {
-  echo -e "\e[31mInstalling kyverno\e[0m"
+  log_red "Installing kyverno"
 
   VERSION=$($_CURL https://api.github.com/repos/kyverno/kyverno/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
   F_ARCH=$OS_ARCH
@@ -586,7 +590,7 @@ function kyverno_install() {
 }
 
 function istioctl_install() {
-  echo -e "\e[31mInstalling istioctl\e[0m"
+  log_red "Installing istioctl"
 
   VERSION=$($_CURL https://api.github.com/repos/istio/istio/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
   if [[ "$(istioctl version --remote=false 2>/dev/null | sed -n 's/^.*version: //p')" == "$VERSION" ]]; then
@@ -604,7 +608,7 @@ function istioctl_install() {
 }
 
 function mc_install() {
-  echo -e "\e[31mInstalling mc\e[0m"
+  log_red "Installing mc"
 
   VERSION=$($_CURL https://api.github.com/repos/minio/mc/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
   if [[ "$(mc --version 2>/dev/null | sed -n 's/^mc version \(.*\) (.*)/\1/p')" == "$VERSION" ]]; then
@@ -623,7 +627,7 @@ function mc_install() {
 }
 
 function yq_install() {
-  echo -e "\e[31mInstalling yq\e[0m"
+  log_red "Installing yq"
 
   VERSION=$($_CURL https://api.github.com/repos/mikefarah/yq/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
   if [[ "$(yq --version 2>/dev/null | sed -n 's/^.*version v//p')" == "$VERSION" ]]; then
@@ -643,7 +647,7 @@ function yq_install() {
 }
 
 function ccat_install() {
-  echo -e "\e[31mInstalling ccat\e[0m"
+  log_red "Installing ccat"
 
   VERSION=$($_CURL https://api.github.com/repos/batmac/ccat/releases | jq -r '.[0].tag_name' | sed 's/v//g')
   if [[ "$(ccat --version 2>/dev/null | sed 's/.*v\([0-9.]*\).*/\1/')" == "$VERSION" ]]; then
@@ -673,7 +677,7 @@ alias _cat=$BIN_PATH/cat"
 }
 
 function talosctl_install() {
-  echo -e "\e[31mInstalling talosctl\e[0m"
+  log_red "Installing talosctl"
 
   if [[ "$TERMUX" == "true" ]]; then
     MODIFIER="proot -b $PREFIX/tmp:/tmp"
@@ -699,7 +703,7 @@ alias tctl=talosctl"
 }
 
 function python_install() {
-  echo -e "\e[31mInstalling python\e[0m"
+  log_red "Installing python"
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y python
     pip install pipx
@@ -710,14 +714,14 @@ function python_install() {
 }
 
 function speedtest_install() {
-  echo -e "\e[31mInstalling speedtest\e[0m"
+  log_red "Installing speedtest"
 
   add_to_profile speedtest 'alias speedtest="wget -O /dev/null https://proof.ovh.net/files/10Gb.dat"
 alias fast=speedtest'
 }
 
 function operator_sdk_install() {
-  echo -e "\e[31mInstalling operator-sdk\e[0m"
+  log_red "Installing operator-sdk"
 
   VERSION=$($_CURL https://api.github.com/repos/operator-framework/operator-sdk/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
   if [[ "$(operator-sdk version 2>/dev/null | sed -E 's/.*version: "([^"]+)".*"v([^"]+)".*/\1/')" == "$VERSION" ]]; then
@@ -746,7 +750,7 @@ function operator_sdk_install() {
 }
 
 function argocd_install() {
-  echo -e "\e[31mInstalling argocd\e[0m"
+  log_red "Installing argocd"
 
   VERSION=$($_CURL https://api.github.com/repos/argoproj/argo-cd/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
   if [[ "$(argocd version --client --short 2>/dev/null | sed -E 's/.*(v[0-9.]*).*/\1/')" == "$VERSION" ]]; then
@@ -766,7 +770,7 @@ function argocd_install() {
 }
 
 function virtctl_install() {
-  echo -e "\e[31mInstalling virtctl\e[0m"
+  log_red "Installing virtctl"
 
   VERSION=$($_CURL https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt)
 
@@ -797,7 +801,7 @@ complete -F __start_virtctl vc"
 }
 
 function neovim_install() {
-  echo -e "\e[31mInstalling neovim\e[0m"
+  log_red "Installing neovim"
 
   export USE_SUDO_PROXY="$USE_SUDO"
   $USE_SUDO apt install -y npm
@@ -818,7 +822,7 @@ function neovim_install() {
     $USE_SUDO npm install -g n
     $USE_SUDO_PROXY n lts
     $USE_SUDO_PROXY npm install -g tree-sitter-cli
-    $USE_SUDO apt install ruby-full fd-find lua5.4 liblua5.4-0 liblua5.4-dev
+    $USE_SUDO apt -y install ruby-full fd-find lua5.4 liblua5.4-0 liblua5.4-dev
 
     VERSION=$($_CURL https://api.github.com/repos/neovim/neovim/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
     if [[ "$(nvim --version 2>/dev/null | sed -n 's/^NVIM v//p')" == "$VERSION" ]]; then
@@ -845,7 +849,7 @@ function neovim_install() {
 
   rm -rf $HOME/.config/nvim
 
-  NEOVIM_SOURCE_GIT=${NEOVIM_SOURCE_GIT:-"git@github.com:lallinger/neovim.git"}
+  NEOVIM_SOURCE_GIT=${NEOVIM_SOURCE_GIT:-"https://github.com/lallinger/neovim.git"}
   git clone $NEOVIM_SOURCE_GIT $HOME/.config/nvim
 
   add_to_profile neovim "alias vim=nvim
@@ -958,12 +962,12 @@ vim.g.clipboard = {
 }
 vim.opt.clipboard = "unnamedplus"'
 
-  termux-info && echo -e "\e[31mon termux\e[0m" && echo "$OSC52_FIX_TERMUX" >>$HOME/.config/nvim/init.lua || (echo -e "\e[31mon normal linux\e[0m" && echo "$OSC52_FIX" >>$HOME/.config/nvim/init.lua)
+  termux-info && log_red "on termux" && echo "$OSC52_FIX_TERMUX" >>$HOME/.config/nvim/init.lua || (log_red "on normal linux" && echo "$OSC52_FIX" >>$HOME/.config/nvim/init.lua)
 
 }
 
 function chatgpt_install() {
-  echo -e "\e[31mInstalling chatgpt\e[0m"
+  log_red "Installing chatgpt"
 
   VERSION=$($_CURL https://api.github.com/repos/kardolus/chatgpt-cli/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
   if [[ "$(chatgpt --version 2>/dev/null | sed 's/.*v\([0-9.]*\).*/\1/')" == "$VERSION" ]]; then
@@ -1003,7 +1007,7 @@ export OPENAI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"openai-a
 }
 
 function gemini_install() {
-  echo -e "\e[31mInstalling gemini\e[0m"
+  log_red "Installing gemini"
 
   if [[ "$TERMUX" == "true" ]]; then
     mkdir -p $HOME/.gyp && echo "{'variables':{'android_ndk_path':''}}" >$HOME/.gyp/include.gypi
@@ -1034,7 +1038,7 @@ export GEMINI_API_KEY=\$(bws secret list | yq e '.[] | select(.key == \"gemini-a
 }
 
 function codex_install() {
-  echo -e "\e[31mInstalling codex\e[0m"
+  log_red "Installing codex"
 
   if [[ "$TERMUX" == "true" ]]; then
     apt install -y codex
@@ -1050,7 +1054,7 @@ alias co=codex"
 }
 
 function vault_install() {
-  echo -e "\e[31mInstalling vault\e[0m"
+  log_red "Installing vault"
 
   VERSION=$($_CURL https://api.github.com/repos/hashicorp/vault/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
   if [[ "$(vault version 2>/dev/null | sed 's/.*v\([0-9.]*\).*/\1/')" == "$VERSION" ]]; then
@@ -1060,7 +1064,7 @@ function vault_install() {
       git clone https://github.com/hashicorp/vault.git
       pushd vault
       git checkout v$VERSION
-      echo -e "\e[31mbuilding vault may take quite some time depending on your device!\e[0m"
+      log_red "building vault may take quite some time depending on your device!"
       make bootstrap || echo "ignore make bootstrap error"
       make
       mv -f bin/vault $BIN_PATH
@@ -1080,7 +1084,7 @@ function vault_install() {
 }
 
 function bitwarden_install() {
-  echo -e "\e[31mInstalling bitwarden\e[0m"
+  log_red "Installing bitwarden"
 
   VERSION=$($_CURL https://api.github.com/repos/bitwarden/sdk-sm/releases | jq -r '.[] | select(.tag_name | test("bws"; "i")) | .tag_name' | head -1 | sed 's/bws-v//g')
 
@@ -1117,16 +1121,16 @@ source $HOME/.secure_vars"
   touch $HOME/.secure_vars
   chmod 600 $HOME/.secure_vars
   source $HOME/.secure_vars
-  echo -e "\e[31mSet BWS_ACCESS_TOKEN in $HOME/secure_vars\e[0m"
+  log_red "Set BWS_ACCESS_TOKEN in $HOME/secure_vars"
   bws --version
 }
 
 function linux_desktop_install() {
   echo
   if systemctl is-enabled display-manager >/dev/null 2>&1; then
-    echo -e "\e[31mDisplay manager enabled (GUI expected)\e[0m"
+    log_red "Display manager enabled (GUI expected)"
   else
-    echo -e "\e[31mNo enabled display manager\e[0m"
+    log_red "No enabled display manager"
     return 0
   fi
 
@@ -1321,11 +1325,11 @@ application/gzip=thunar.desktop;' >$HOME/.config/mimeapps.list
 }
 
 function miscelanious_install() {
-  echo -e "\e[31mInstalling miscelanious\e[0m"
-  $USE_SUDO apt install -y duf gdu dos2unix rclone zoxide htop net-tools tree lsd tmux
+  log_red "Installing miscelanious"
+  $USE_SUDO apt install -y duf gdu dos2unix rclone zoxide htop net-tools tree lsd tmux unzip
 
   FONT_FOLDER=$HOME/.local/share/fonts
-
+  FONT_NAME="JetBrainsMonoNerdFont-Regular.ttf"
   export INPUTRC_LOCATION=/etc/inputrc
   if [[ "$TERMUX" == "true" ]]; then
     export INPUTRC_LOCATION=$PREFIX/etc/inputrc
@@ -1335,7 +1339,8 @@ function miscelanious_install() {
     $USE_SUDO apt install -y iotop dropbear bind9-dnsutils net-tools sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
   fi
 
-  cat $FONT_FOLDER >/dev/null || ($_WGET https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mv -f fonts/JetBrainsMonoNerdFont-Regular.ttf $FONT_FOLDER && rm -rf fonts JetBrainsMono.zip)
+  mkdir -p $FONT_FOLDER
+  cat $FONT_FOLDER/$FONT_NAME >/dev/null || ($_WGET https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mv -f fonts/JetBrainsMonoNerdFont-Regular.ttf $FONT_FOLDER/$FONT_NAME && rm -rf fonts JetBrainsMono.zip)
 
   $USE_SUDO bash -c "echo 'set completion-ignore-case On' >> $INPUTRC_LOCATION"
 
@@ -1419,7 +1424,7 @@ cd /mnt/c/Users/$WIN_USER' >$HOME/.win_home
 }
 
 function termux_install() {
-  echo -e "\e[31mInstalling termux specifics\e[0m"
+  log_red "Installing termux specifics"
 
   pushd $HOME/.termux
 
@@ -1513,4 +1518,4 @@ install_tools() {
 
 install_tools
 
-echo -e "\e[31msetup.sh finished successfully! Run 'source $HOME/.bashrc' or open a new bash shell to start using!\e[0m"
+log_red "setup.sh finished successfully! Run 'source $HOME/.bashrc' or open a new bash shell to start using!"
