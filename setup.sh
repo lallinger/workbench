@@ -913,7 +913,6 @@ function neovim_install() {
         { import = "lazyvim.plugins.extras.lang.go" },\
         { import = "lazyvim.plugins.extras.lang.helm" },\
         { import = "lazyvim.plugins.extras.lang.json" },\
-        { import = "lazyvim.plugins.extras.lang.markdown" },\
         { import = "lazyvim.plugins.extras.lang.sql" },\
         { import = "lazyvim.plugins.extras.lang.terraform" },\
         { import = "lazyvim.plugins.extras.lang.toml" },\
@@ -1263,7 +1262,17 @@ vim.keymap.set('i', '<C-f>', '<Esc>/', { noremap = true })" >$HOME/.config/nvim/
   "nvim-telescope/telescope-file-browser.nvim",
   dependencies = { "nvim-telescope/telescope.nvim", "nvim-lua/plenary.nvim" },
   config = function()
-    require("telescope").load_extension("file_browser")
+    require("telescope").setup({
+      extensions = {
+        file_browser = {
+          hidden = true,
+          sorting_strategy = "ascending",
+          layout_config = {
+            prompt_position = "top",
+          },
+        },
+      },
+    })
   end,
 }' >$HOME/.config/nvim/lua/plugins/telescope-file-browser.lua
 
@@ -1328,8 +1337,11 @@ vim.keymap.set('i', '<C-f>', '<Esc>/', { noremap = true })" >$HOME/.config/nvim/
     "franco-ruggeri/codecompanion-spinner.nvim",
   },
   keys = {
-    { "<A-q>", "<cmd>CodeCompanionChat Toggle<cr>", mode = { "n", "i" }, desc = "CodeCompanion Chat" },
-    { "<A-q>", ":CodeCompanionChat Add<cr>", mode = { "v" }, desc = "CodeCompanion Chat" },
+    { "<A-q>", "<cmd>CodeCompanionChat Toggle<cr>", mode = { "n" }, desc = "CodeCompanion Chat" },
+    { "<A-q>", "<cmd>:CodeCompanionChat Toggle<cr>", mode = { "i" }, desc = "CodeCompanion Chat" },
+    { "<A-q>", ":CodeCompanionChat Add<cr>i", mode = { "v" }, desc = "CodeCompanion Chat" },
+    { "<A-Q>", ":CodeCompanion<cr>", mode = { "v" }, desc = "CodeCompanion File" },
+    { "<A-Q>", "<cmd>CodeCompanion<cr>", mode = { "n", "i" }, desc = "CodeCompanion File" },
   },
   config = function()
     require("codecompanion").setup({
@@ -1777,15 +1789,18 @@ function miscelanious_install() {
   echo -e "\e[31mInstalling miscelanious\e[0m"
   $USE_SUDO apt install -y duf gdu dos2unix rclone zoxide htop net-tools tree lsd tmux
 
+  FONT_FOLDER=$HOME/.local/share/fonts
+
   export INPUTRC_LOCATION=/etc/inputrc
   if [[ "$TERMUX" == "true" ]]; then
     export INPUTRC_LOCATION=$PREFIX/etc/inputrc
     apt install -y which ncurses-utils apache2 # apache2 => needed for htpasswd for argocd bcrypt
+    FONT_FOLDER=$HOME/.termux/font.ttf
   else
     $USE_SUDO apt install -y iotop dropbear bind9-dnsutils net-tools sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
   fi
 
-  cat $HOME/.termux/font.ttf >/dev/null || ($_WGET https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mv -f fonts/JetBrainsMonoNerdFont-Regular.ttf $HOME/.termux/font.ttf && rm -rf fonts JetBrainsMono.zip)
+  cat $FONT_FOLDER >/dev/null || ($_WGET https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mv -f fonts/JetBrainsMonoNerdFont-Regular.ttf $FONT_FOLDER && rm -rf fonts JetBrainsMono.zip)
 
   $USE_SUDO bash -c "echo 'set completion-ignore-case On' >> $INPUTRC_LOCATION"
 
