@@ -1320,6 +1320,95 @@ vim.keymap.set('i', '<C-f>', '<Esc>/', { noremap = true })" >$HOME/.config/nvim/
   end,
 }' >$HOME/.config/nvim/lua/plugins/lualine.lua
 
+  echo 'return {
+  "olimorris/codecompanion.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "nvim-treesitter/nvim-treesitter",
+    "franco-ruggeri/codecompanion-spinner.nvim",
+  },
+  keys = {
+    { "<A-q>", "<cmd>CodeCompanionChat Toggle<cr>", mode = { "n", "i" }, desc = "CodeCompanion Chat" },
+    { "<A-q>", ":CodeCompanionChat Add<cr>", mode = { "v" }, desc = "CodeCompanion Chat" },
+  },
+  config = function()
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          adapter = "gemini",
+        },
+        inline = {
+          adapter = "gemini",
+        },
+      },
+      adapters = {
+        gpt5 = function()
+          return require("codecompanion.adapters").extend("openai", {
+            name = "gpt5",
+            env = {
+              api_key = os.getenv("OPENAI_API_KEY"),
+            },
+            schema = {
+              model = {
+                default = "gpt-5-mini",
+              },
+            },
+          })
+        end,
+
+        gemini = function()
+          return require("codecompanion.adapters").extend("gemini", {
+            name = "gemini",
+            env = {
+              api_key = os.getenv("GEMINI_API_KEY"),
+            },
+            schema = {
+              model = {
+                default = "gemini-3.1-pro-preview",
+              },
+            },
+          })
+        end,
+      },
+      display = {
+        chat = {
+          show_settings = true,
+          render_headers = true,
+        },
+      },
+      extensions = {
+        spinner = {},
+      },
+    })
+  end,
+}' >$HOME/.config/nvim/lua/plugins/codecompanion.lua
+
+  echo 'return {
+  "MeanderingProgrammer/render-markdown.nvim",
+  dependencies = { "nvim-treesitter/nvim-treesitter", "echasnovski/mini.icons" },
+  ft = { "markdown", "norg", "rmd", "org" }, -- Required to trigger lazy loading in LazyVim
+  ---@module "render-markdown"
+  ---@type render.md.UserConfig
+  opts = {},
+}' >$HOME/.config/nvim/lua/plugins/markdown-render.lua
+
+  echo 'return {
+  {
+    "saghen/blink.cmp",
+    opts = {
+      sources = {
+        providers = {
+          path = {
+            opts = {
+              show_hidden_files_by_default = true,
+            },
+          },
+        },
+      },
+    },
+  },
+}' >$HOME/.config/nvim/lua/plugins/completions.lua
+
   add_to_profile neovim "alias vim=nvim
 git config --global core.editor nvim
 export EDITOR=nvim
