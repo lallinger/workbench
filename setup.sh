@@ -1365,7 +1365,8 @@ alias gitwip="git add . && git commit -m wip && git pull --rebase && git push"
 alias gitgud='"'"'_gitgud() { args="$@" && git add . && git commit -m "$args" && git pull --rebase && git push ;}; _gitgud'"'
 alias gg=gitgud
 alias gwip=gitwip
-alias gc='git clone'"
+alias gc='git clone'
+alias gs='git status'"
 
   add_to_profile prompt 'WHITE=$(tput setaf 7)
 CYAN=$(tput setaf 3)
@@ -1398,12 +1399,13 @@ alias hist="history -a && history -r"
   add_to_profile bashrc "alias bashrc=\"vim $_bashrc\"
 alias src=\"source $_bashrc\""
 
-  add_to_profile apt 'alias ai="apt install"
-alias aiy="apt install -y"
-alias alu="apt list --upgradable"
-alias aupd="apt update"
-alias aupg="apt upgrade"
-alias ar="apt remove"'
+  add_to_profile apt "USE_SUDO=$USE_SUDO"'
+alias ai="$USE_SUDO apt install"
+alias aiy="$USE_SUDO apt install -y"
+alias alu="$USE_SUDO apt list --upgradable"
+alias aupd="$USE_SUDO apt update"
+alias aupg="$USE_SUDO apt upgrade"
+alias ar="$USE_SUDO apt remove"'
 
   echo '#!/usr/bin/bash
 cd /mnt/c/Users/$WIN_USER' >$HOME/.win_home
