@@ -1657,8 +1657,6 @@ application/zip=thunar.desktop;
 application/epub+zip=org.gnome.Nautilus.desktop;thunar.desktop;
 application/gzip=thunar.desktop;' >$HOME/.config/mimeapps.list
 
-  cat $HOME/.local/share/fonts/JetBrainsMonoNerdFont-Regular.ttf >/dev/null || ($_WGET https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mkdir -p $HOME/.local/share/fonts && mv -f fonts/*.ttf $HOME/.local/share/fonts && rm -rf fonts JetBrainsMono.zip)
-
   echo '[global_config]
 [keybindings]
   split_auto = <Primary>t
@@ -1694,10 +1692,11 @@ function miscelanious_install() {
   if [[ "$TERMUX" == "true" ]]; then
     export INPUTRC_LOCATION=$PREFIX/etc/inputrc
     apt install -y which ncurses-utils apache2 # apache2 => needed for htpasswd for argocd bcrypt
-    cat $HOME/.termux/font.ttf >/dev/null || ($_WGET https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mv -f fonts/JetBrainsMonoNerdFont-Regular.ttf $HOME/.termux/font.ttf && rm -rf fonts JetBrainsMono.zip)
   else
     $USE_SUDO apt install -y iotop dropbear bind9-dnsutils net-tools sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
   fi
+
+  cat $HOME/.termux/font.ttf >/dev/null || ($_WGET https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mv -f fonts/JetBrainsMonoNerdFont-Regular.ttf $HOME/.termux/font.ttf && rm -rf fonts JetBrainsMono.zip)
 
   $USE_SUDO bash -c "echo 'set completion-ignore-case On' >> $INPUTRC_LOCATION"
 
