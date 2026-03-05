@@ -50,3 +50,14 @@ git clone https://github.com/lallinger/workbench
 pushd workbench
 ./setup.sh
 ```
+
+## Docker
+
+If you prefer working in a docker environment you can use the pre-built image containing everything:
+```docker run -it lallinger/swisscloudknife```
+ATTENTION: there is currently no plan to version the image, latest is greatest.
+
+As the image is currently about 5.6GB in size you may want to build it yourself and choose which tools should be integrated:
+```docker build -t YOUR_REGISTRY/NAME:TAG```
+
+. It is also useful for debugging in a kubernetes cluster as a SwissCloudKnife.
