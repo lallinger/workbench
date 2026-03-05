@@ -74,6 +74,8 @@ function prepare() {
   $USE_SUDO apt update
   $USE_SUDO apt install -y curl wget git bash-completion jq
   $USE_SUDO apt upgrade -y
+
+  source $HOME/.workbench || echo "no customization found"
 }
 
 function terraform_install() {
@@ -921,7 +923,7 @@ function neovim_install() {
 
   echo 'require("config.lazy")' >$HOME/.config/nvim/init.lua
 
-  export OSC52_FIX_WSL='-- fix for windows terminal copy/paste timeout
+  export OSC52_FIX='-- fix for terminal copy/paste timeout
 function no_paste(reg)
     return function(lines)
         -- Do nothing! We cant paste with OSC52
@@ -960,7 +962,7 @@ vim.g.clipboard = {
 }
 vim.opt.clipboard = "unnamedplus"'
 
-  wslinfo --version && (echo -e "\e[31mon wls\e[0m" && echo "$OSC52_FIX_WSL" >>$HOME/.config/nvim/init.lua) || (termux-info && echo -e "\e[31mon termux\e[0m" && echo "$OSC52_FIX_TERMUX" >>$HOME/.config/nvim/init.lua || (echo -e "\e[31mon normal linux\e[0m" && echo 'vim.g.clipboard = "osc52" --for ssh' >>$HOME/.config/nvim/init.lua))
+  termux-info && echo -e "\e[31mon termux\e[0m" && echo "$OSC52_FIX_TERMUX" >>$HOME/.config/nvim/init.lua || (echo -e "\e[31mon normal linux\e[0m" && echo "$OSC52_FIX" >>$HOME/.config/nvim/init.lua)
 
   echo 'vim.cmd(":set listchars=eol:$,tab:>-,trail:~,extends:>,precedes:<,space:⋅")
 vim.cmd(":set nolist")
@@ -1686,7 +1688,7 @@ application/gzip=thunar.desktop;' >$HOME/.config/mimeapps.list
 
 function miscelanious_install() {
   echo -e "\e[31mInstalling miscelanious\e[0m"
-  $USE_SUDO apt install -y duf gdu dos2unix rclone zoxide htop net-tools tree lsd
+  $USE_SUDO apt install -y duf gdu dos2unix rclone zoxide htop net-tools tree lsd tmux
 
   export INPUTRC_LOCATION=/etc/inputrc
   if [[ "$TERMUX" == "true" ]]; then
@@ -1769,6 +1771,11 @@ alias ar="apt remove"'
 cd /mnt/c/Users/$WIN_USER' >$HOME/.win_home
   add_to_profile home "alias home='source $HOME/.win_home'"
 
+  echo 'bind -n M-Left previous-window
+  bind -n M-Right next-window
+  bind -n M-T new-window -c "#{pane_current_path}"
+  bind -n M-Tab next-window
+  bind -n M-Btab previous-window' >$HOME/.tmux.conf
 }
 
 function termux_install() {
@@ -1823,6 +1830,7 @@ sshd' >boot/start.sh
 }
 
 function finish() {
+  custom_install || echo "no customization active"       # function found in $HOME/.workbench
   add_to_profile kubectl "source $HOME/.kubectl_aliases" # somehow completion only works when it's sourced last. kubectl section gets added in miscelanious_install
 }
 
