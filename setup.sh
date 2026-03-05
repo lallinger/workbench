@@ -845,7 +845,7 @@ function neovim_install() {
 
   rm -rf $HOME/.config/nvim
 
-  NEOVIM_SOURCE_GIT=${NEOVIM_SOURCE_GIT:-"git@github.com/lallinger/neovim.git"}
+  NEOVIM_SOURCE_GIT=${NEOVIM_SOURCE_GIT:-"git@github.com:lallinger/neovim.git"}
   git clone $NEOVIM_SOURCE_GIT $HOME/.config/nvim
 
   add_to_profile neovim "alias vim=nvim
