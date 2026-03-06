@@ -524,7 +524,7 @@ function docker_install() {
 
   if [[ "$TERMUX" == "true" ]]; then
     VERSION=$($_CURL https://api.github.com/repos/moby/buildkit/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
-    if [[ "$(buildctl version --remote=false 2>/dev/null | sed -n 's/^.*version: //p')" == "$VERSION" ]]; then
+    if [[ "$(buildctl --version 2>/dev/null | sed 's/.*v\([0-9.]*\).*/\1/')" == "$VERSION" ]]; then
       echo "buildctl $VERSION already installed, skipping download"
     else
       tmpdir="$(mktemp -d)"
@@ -1396,7 +1396,8 @@ alias gitgud='"'"'_gitgud() { args="$@" && git add . && git commit -m "$args" &&
 alias gg=gitgud
 alias gwip=gitwip
 alias gc='git clone'
-alias gs='git status'"
+alias gs='git status'
+alias gp='git pull'"
 
   add_to_profile prompt 'WHITE=$(tput setaf 7)
 CYAN=$(tput setaf 3)
@@ -1511,39 +1512,39 @@ function finish() {
 
 install_tools() {
   prepare
-  miscelanious_install
-  go_install
-  neovim_install
-  linux_desktop_install
-  bitwarden_install
-  terraform_install
-  yq_install
-  kustomize_install
-  helm_install
-  kubectl_install
-  oc_install
-  krew_install
-  kubectx_install
-  netshoot_install
-  k9s_install
-  kubecolor_install
+  # miscelanious_install
+  # go_install
+  # neovim_install
+  # linux_desktop_install
+  # bitwarden_install
+  # terraform_install
+  # yq_install
+  # kustomize_install
+  # helm_install
+  # kubectl_install
+  # oc_install
+  # krew_install
+  # kubectx_install
+  # netshoot_install
+  # k9s_install
+  # kubecolor_install
   docker_install
-  kubectl_neat_install
-  istioctl_install
-  kyverno_install
-  mc_install
-  ccat_install
-  talosctl_install
-  python_install
-  speedtest_install
-  operator_sdk_install
-  argocd_install
-  virtctl_install
-  chatgpt_install
-  gemini_install
-  codex_install
-  vault_install
-  finish
+  # kubectl_neat_install
+  # istioctl_install
+  # kyverno_install
+  # mc_install
+  # ccat_install
+  # talosctl_install
+  # python_install
+  # speedtest_install
+  # operator_sdk_install
+  # argocd_install
+  # virtctl_install
+  # chatgpt_install
+  # gemini_install
+  # codex_install
+  # vault_install
+  # finish
 }
 
 install_tools
