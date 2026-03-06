@@ -528,7 +528,7 @@ function docker_install() {
       echo "buildctl $VERSION already installed, skipping download"
     else
       tmpdir="$(mktemp -d)"
-      $_WGET https://github.com/moby/buildkit/releases/latest/download/buildkit-v$VERSION.linux-$PKG_ARCH.tar.gz -O "$tmpdir/buildkit.tar.gz"
+      $_WGET https://github.com/moby/buildkit/releases/latest/download/buildkit-v$VERSION.linux-arm-v7.tar.gz -O "$tmpdir/buildkit.tar.gz"
       tar -xvf "$tmpdir/buildkit.tar.gz" -C "$tmpdir"
       mv -f "$tmpdir/bin/buildctl" $BIN_PATH
       rm -rf "$tmpdir"
