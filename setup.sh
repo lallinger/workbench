@@ -523,7 +523,20 @@ function docker_install() {
   log_red "Installing docker"
 
   if [[ "$TERMUX" == "true" ]]; then
-    log_red "skipping"
+    VERSION=$($_CURL https://api.github.com/repos/moby/buildkit/releases | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name' | sed 's/v//g')
+    if [[ "$(buildctl version --remote=false 2>/dev/null | sed -n 's/^.*version: //p')" == "$VERSION" ]]; then
+      echo "buildctl $VERSION already installed, skipping download"
+    else
+      tmpdir="$(mktemp -d)"
+      $_WGET https://github.com/moby/buildkit/releases/latest/download/buildkit-v$VERSION.linux-$PKG_ARCH.tar.gz -O "$tmpdir/buildkit.tar.gz"
+      tar -xvf "$tmpdir/buildkit.tar.gz" -C "$tmpdir"
+      mv -f "$tmpdir/bin/buildctl" $BIN_PATH
+      rm -rf "$tmpdir"
+    fi
+
+    add_to_profile docker 'function dbt () {
+  "$PROOT_DNS_CERTS buildctl build --frontend dockerfile.v0 --local context=. --local dockerfile=.
+}"'
     return
   fi
 
@@ -1335,7 +1348,7 @@ function miscelanious_install() {
     export INPUTRC_LOCATION=$PREFIX/etc/inputrc
     apt install -y which ncurses-utils apache2 # apache2 => needed for htpasswd for argocd bcrypt
     FONT_FOLDER=$HOME/.termux
-    FONT_NAME=$FONT_FOLDER/font.ttf
+    FONT_NAME=font.ttf
   else
     $USE_SUDO apt install -y iotop dropbear bind9-dnsutils net-tools sqlite3 apache2-utils # apache2-utils => needed for htpasswd for argocd bcrypt
   fi
