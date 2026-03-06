@@ -535,8 +535,14 @@ function docker_install() {
     fi
 
     add_to_profile docker 'function dbt () {
-  "$PROOT_DNS_CERTS buildctl build --frontend dockerfile.v0 --local context=. --local dockerfile=.
-}"'
+  $PROOT_DNS_CERTS buildctl build --frontend dockerfile.v0 --local context=. --local dockerfile=. --output type=image,name=$1,push=true
+}
+
+function run-it() {
+  local pod_name="${image//[:\/]/-}-$(date +%s)"
+  run_command="kubectl run \"$pod_name\" --image=\"$1\" -it --rm --restart=Never --
+  $run_command /bin/bash -c : || ( echo fallback to sh && $run_command /bin/sh ) && $run_command /bin/bash
+}'
     return
   fi
 
@@ -1431,10 +1437,15 @@ cd /mnt/c/Users/$WIN_USER' >$HOME/.win_home
   add_to_profile home "alias home='source $HOME/.win_home'"
 
   echo 'bind -n M-Left previous-window
-  bind -n M-Right next-window
-  bind -n M-T new-window -c "#{pane_current_path}"
-  bind -n M-Tab next-window
-  bind -n M-Btab previous-window' >$HOME/.tmux.conf
+bind -n M-Right next-window
+bind -n M-T new-window -c "#{pane_current_path}"
+bind -n M-Tab next-window
+bind -n M-Btab previous-window
+bind -n C-Up copy-mode -e \; send-keys -X scroll-up
+bind -T copy-mode C-Up send-keys -X scroll-up
+bind -T copy-mode C-Down send-keys -X scroll-down
+bind -T copy-mode-vi C-Up send-keys -X scroll-up
+bind -T copy-mode-vi C-Down send-keys -X scroll-down' >$HOME/.tmux.conf
 }
 
 function termux_install() {
