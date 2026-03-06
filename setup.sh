@@ -540,7 +540,7 @@ function docker_install() {
 
 function run-it() {
   local pod_name="${image//[:\/]/-}-$(date +%s)"
-  run_command="kubectl run \"$pod_name\" --image=\"$1\" -it --rm --restart=Never --
+  run_command="kubectl run \"$pod_name\" --image=\"$1\" -it --rm --restart=Never --"
   $run_command /bin/bash -c : || ( echo fallback to sh && $run_command /bin/sh ) && $run_command /bin/bash
 }'
     return
@@ -871,10 +871,18 @@ function neovim_install() {
   NEOVIM_SOURCE_GIT=${NEOVIM_SOURCE_GIT:-"https://github.com/lallinger/neovim.git"}
   git clone $NEOVIM_SOURCE_GIT $HOME/.config/nvim
 
-  add_to_profile neovim "alias vim=nvim
-  git config --global core.editor nvim
-  export EDITOR=nvim
-  export VISUAL=nvim"
+  if [[ "$TERMUX" == "true" ]]; then
+    # proot needed for codecompanion
+    add_to_profile neovim "alias vim='proot $PREFIX/tmp:/tmp nvim'
+git config --global core.editor nvim
+export EDITOR=nvim
+export VISUAL=nvim"
+  else
+    add_to_profile neovim "alias vim='nvim'
+git config --global core.editor nvim
+export EDITOR=nvim
+export VISUAL=nvim"
+  fi
 
   if [[ "${NEOVIM_NO_TOUCHY}" == "true" ]]; then
     return 0
