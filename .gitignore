@@ -1,3 +1,8 @@
 .idea
 .termux-init.sh
 push.sh
+*
+!./.gitignore
+!./Dockerfile
+!./README.md
+!./setup.sh

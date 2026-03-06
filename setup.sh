@@ -1360,7 +1360,12 @@ function miscelanious_install() {
   fi
 
   mkdir -p $FONT_FOLDER
-  cat $FONT_FOLDER/$FONT_NAME >/dev/null || ($_WGET https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip && unzip JetBrainsMono.zip -d fonts && mv -f fonts/JetBrainsMonoNerdFont-Regular.ttf $FONT_FOLDER/$FONT_NAME && rm -rf fonts JetBrainsMono.zip)
+  cat $FONT_FOLDER/$FONT_NAME >/dev/null ||
+    (tmpdir="$(mktemp -d)" &&
+      $_WGET https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip -O $tmpdir &&
+      unzip $tmpdir/JetBrainsMono.zip -d $tmpdir/fonts &&
+      mv -f $tmpdir/fonts/JetBrainsMonoNerdFont-Regular.ttf $FONT_FOLDER/$FONT_NAME &&
+      rm -rf $tmpdir)
 
   $USE_SUDO bash -c "echo 'set completion-ignore-case On' >> $INPUTRC_LOCATION"
 
