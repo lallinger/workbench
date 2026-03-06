@@ -535,7 +535,7 @@ function docker_install() {
     fi
 
     add_to_profile docker 'function dbt () {
-  $PROOT_DNS_CERTS buildctl build --frontend dockerfile.v0 --local context=. --local dockerfile=. --output type=image,name=$1,push=true
+  $PROOT_DNS_CERTS buildctl --addr=$BUILDKIT_SERVER build --frontend dockerfile.v0 --local context=. --local dockerfile=. --output type=image,name=$1,push=true
 }
 
 function run-it() {
@@ -1512,39 +1512,39 @@ function finish() {
 
 install_tools() {
   prepare
-  # miscelanious_install
-  # go_install
-  # neovim_install
-  # linux_desktop_install
-  # bitwarden_install
-  # terraform_install
-  # yq_install
-  # kustomize_install
-  # helm_install
-  # kubectl_install
-  # oc_install
-  # krew_install
-  # kubectx_install
-  # netshoot_install
-  # k9s_install
-  # kubecolor_install
+  miscelanious_install
+  go_install
+  neovim_install
+  linux_desktop_install
+  bitwarden_install
+  terraform_install
+  yq_install
+  kustomize_install
+  helm_install
+  kubectl_install
+  oc_install
+  krew_install
+  kubectx_install
+  netshoot_install
+  k9s_install
+  kubecolor_install
   docker_install
-  # kubectl_neat_install
-  # istioctl_install
-  # kyverno_install
-  # mc_install
-  # ccat_install
-  # talosctl_install
-  # python_install
-  # speedtest_install
-  # operator_sdk_install
-  # argocd_install
-  # virtctl_install
-  # chatgpt_install
-  # gemini_install
-  # codex_install
-  # vault_install
-  # finish
+  kubectl_neat_install
+  istioctl_install
+  kyverno_install
+  mc_install
+  ccat_install
+  talosctl_install
+  python_install
+  speedtest_install
+  operator_sdk_install
+  argocd_install
+  virtctl_install
+  chatgpt_install
+  gemini_install
+  codex_install
+  vault_install
+  finish
 }
 
 install_tools
