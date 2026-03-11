@@ -873,7 +873,7 @@ function neovim_install() {
 
   if [[ "$TERMUX" == "true" ]]; then
     # proot needed for codecompanion
-    add_to_profile neovim "alias vim='proot $PREFIX/tmp:/tmp nvim'
+    add_to_profile neovim "alias vim='proot -b $PREFIX/tmp:/tmp nvim'
 git config --global core.editor nvim
 export EDITOR=nvim
 export VISUAL=nvim"
