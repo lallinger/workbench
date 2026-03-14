@@ -1479,7 +1479,7 @@ export PROOT_DNS_CERTS="proot -b $PREFIX/etc/resolv.conf:/etc/resolv.conf -b $PR
 
   cat termux.properties | grep terminal-transcript-rows || echo "terminal-transcript-rows = 100000" >>termux.properties
 
-  apt install -y mandoc perl termux-auth openssh resolv-conf ca-certificates proot x11-repo tur-repo termux-api
+  apt install -y mandoc perl termux-auth openssh resolv-conf ca-certificates proot x11-repo tur-repo termux-api android-tools
   cat $HOME/.termux_authinfo >/dev/null || passwd
 
   echo 'background:     #000000
