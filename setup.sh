@@ -1392,6 +1392,8 @@ alias cd=z"
   add_to_profile lsd 'alias ls=lsd
 alias ll="lsd -l"'
 
+  add_to_profile base64 'alias based="base64 -d"'
+
   add_to_profile grep "alias grepf='grep -HIirn --color=always'"
 
   add_to_profile git 'git config --global core.autocrlf false
