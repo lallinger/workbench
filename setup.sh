@@ -135,6 +135,7 @@ alias tfda="terraform destroy -auto-approve"'"
 export PASSWORD=\$(bws secret list | yq e '.[] | select(.key == \"password\") | .value')
 export TF_VAR_password=\$PASSWORD
 export TF_VAR_bitwarden_access_token=\$BWS_ACCESS_TOKEN
+export TF_VAR_home=$HOME
 export TF_VAR_portainer_endpoint=\$TF_VAR_portainer_endpoint" # -> set via .secure_vars
   fi
 
