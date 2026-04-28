@@ -1353,7 +1353,7 @@ application/gzip=thunar.desktop;' >$HOME/.config/mimeapps.list
 
 function miscelanious_install() {
   log_red "Installing miscelanious"
-  $USE_SUDO apt install -y duf gdu dos2unix rclone zoxide htop net-tools tree lsd tmux unzip fastfetch
+  $USE_SUDO apt install -y duf gdu dos2unix rclone zoxide htop net-tools tree lsd tmux unzip neofetch
 
   FONT_FOLDER=$HOME/.local/share/fonts
   FONT_NAME="JetBrainsMonoNerdFont-Regular.ttf"
