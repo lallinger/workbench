@@ -1361,7 +1361,7 @@ function miscelanious_install() {
   export INPUTRC_LOCATION=/etc/inputrc
   if [[ "$TERMUX" == "true" ]]; then
     export INPUTRC_LOCATION=$PREFIX/etc/inputrc
-    apt install -y which ncurses-utils apache2 # apache2 => needed for htpasswd for argocd bcrypt
+    apt install -y which ncurses-utils dnsutils apache2 # apache2 => needed for htpasswd for argocd bcrypt
     FONT_FOLDER=$HOME/.termux
     FONT_NAME=font.ttf
   else
